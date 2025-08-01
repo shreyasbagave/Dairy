@@ -31,7 +31,10 @@ const authRoutes = require('./src/routes/auth');
 app.use('/', authRoutes);
 
 const adminRoutes = require('./src/routes/admin');
-app.use('/', adminRoutes);
+app.use('/admin', adminRoutes);
+
+const farmerRoutes = require('./src/routes/farmer');
+app.use('/farmer', farmerRoutes);
 
 // TODO: Add routes here
 
