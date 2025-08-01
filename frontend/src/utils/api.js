@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://dairy-1-baro.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://dairy-1-baro.onrender.com';
 
 export const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -29,10 +29,28 @@ export const apiCall = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, finalOptions);
+    
+    // Check if response is ok before trying to parse JSON
+    if (!response.ok) {
+      // Try to get error message from response
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (jsonError) {
+        // If JSON parsing fails, use the status text
+        console.warn('Could not parse error response as JSON:', jsonError);
+      }
+      throw new Error(errorMessage);
+    }
+    
     return response;
   } catch (error) {
     console.error('API call failed:', error);
-    throw new Error('Network error. Please check your connection and try again.');
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Network error. Please check your connection and try again.');
+    }
+    throw error;
   }
 };
 
