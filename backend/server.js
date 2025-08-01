@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 const corsOptions = {
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://dairy-frontend-1.onrender.com'],
   credentials: true,
 };
 app.use(cors(corsOptions));
