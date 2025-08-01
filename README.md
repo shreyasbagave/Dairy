@@ -65,6 +65,12 @@ A comprehensive dairy management system with responsive design and secure authen
 - Larger click targets
 - Enhanced typography
 
+## 🌐 Deployed Application
+
+The application is deployed on Render:
+- **Frontend**: https://dairy-frontend-1.onrender.com
+- **Backend**: https://dairy-1-baro.onrender.com
+
 ## 🔧 Installation & Setup
 
 ### Prerequisites
@@ -98,7 +104,7 @@ JWT_SECRET=your_jwt_secret_key
 
 **Frontend (.env)**
 ```
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=https://dairy-1-baro.onrender.com
 ```
 
 ## 📁 Project Structure

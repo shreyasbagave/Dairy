@@ -19,15 +19,10 @@ function MilkTable() {
         method: 'GET'
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setLogs(data);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'Failed to fetch milk logs');
-      }
+      const data = await response.json();
+      setLogs(data);
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(err.message || 'Failed to fetch milk logs');
       console.error('Error fetching milk logs:', err);
     }
     

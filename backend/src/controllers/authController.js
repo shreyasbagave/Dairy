@@ -114,7 +114,7 @@ exports.requestPasswordReset = async (req, res) => {
 
     // In a real application, send email here
     // For now, we'll return the reset link
-    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}&role=${role}`;
+    const resetLink = `${process.env.FRONTEND_URL || 'https://dairy-frontend-1.onrender.com'}/reset-password?token=${resetToken}&role=${role}`;
 
     console.log('Password reset link generated:', resetLink);
 
