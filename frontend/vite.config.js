@@ -5,8 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-     
       '/admin': 'https://dairy-1-baro.onrender.com',
+      '/auth': 'https://dairy-1-baro.onrender.com',
+      '/farmer': 'https://dairy-1-baro.onrender.com',
     },
   },
 }); 
