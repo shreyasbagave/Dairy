@@ -6,6 +6,7 @@ function AdminDashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -19,8 +20,40 @@ function AdminDashboard() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     
+    // Get user info from JWT token
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUserInfo(payload);
+      } catch (error) {
+        console.error('Error decoding token:', error);
+      }
+    }
+    
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showMobileMenu && !event.target.closest('.mobile-sidebar') && !event.target.closest('.mobile-menu-button')) {
+        setShowMobileMenu(false);
+      }
+    };
+
+    if (showMobileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = 'auto';
+    };
+  }, [showMobileMenu]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -37,12 +70,207 @@ function AdminDashboard() {
     { path: '/admin/dashboard/farmer-records', label: 'Records', icon: '📋' }
   ];
 
+  const handleMenuClick = (path) => {
+    navigate(path);
+    setShowMobileMenu(false);
+  };
+
   return (
     <div style={{ 
       minHeight: '100vh', 
       background: '#f7fafc',
-      display: 'flex'
+      display: 'flex',
+      flexDirection: 'column'
     }}>
+      {/* Mobile Header */}
+      <header style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: '#fff',
+        padding: 'clamp(8px, 2vw, 12px) clamp(12px, 3vw, 20px)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }} className="show-mobile hide-desktop">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            className="mobile-menu-button"
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              color: '#fff',
+              border: 'none',
+              padding: '8px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '40px',
+              minHeight: '40px'
+            }}
+          >
+            ☰
+          </button>
+          <h1 style={{ 
+            margin: 0, 
+            fontSize: 'clamp(1rem, 4vw, 1.3rem)',
+            fontWeight: '600'
+          }}>
+            🥛 {userInfo?.username || 'Admin'}
+          </h1>
+        </div>
+        
+      </header>
+
+      {/* Mobile Sidebar Overlay */}
+      {showMobileMenu && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          display: 'flex'
+        }} className="show-mobile hide-desktop">
+          <div 
+            className="mobile-sidebar"
+            style={{
+              background: '#fff',
+              width: '280px',
+              height: '100vh',
+              boxShadow: '2px 0 8px rgba(0,0,0,0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'slideIn 0.3s ease-out'
+            }}
+          >
+            {/* Mobile Sidebar Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: '#fff',
+              padding: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '600' }}>
+                🥛 {userInfo?.username || 'Admin'} Menu
+              </h2>
+              <button
+                onClick={() => setShowMobileMenu(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '8px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                  minWidth: '32px',
+                  minHeight: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Mobile Sidebar Menu Items */}
+            <div style={{
+              flex: 1,
+              padding: '16px 0',
+              overflowY: 'auto'
+            }}>
+              {menuItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => handleMenuClick(item.path)}
+                  style={{
+                    background: isActive(item.path) ? '#2563eb' : 'transparent',
+                    color: isActive(item.path) ? '#fff' : '#2d3748',
+                    border: 'none',
+                    padding: '16px 20px',
+                    borderRadius: '0',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontSize: '1rem',
+                    fontWeight: isActive(item.path) ? '600' : '500',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    width: '100%',
+                    minHeight: '56px',
+                    borderBottom: '1px solid #f1f5f9'
+                  }}
+                >
+                  <span style={{ fontSize: '1.3em' }}>{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile Sidebar Footer */}
+            <div style={{
+              padding: '16px 20px',
+              borderTop: '1px solid #e2e8f0',
+              background: '#f8fafc'
+            }}>
+              <button
+                onClick={() => {
+                  navigate('/profile');
+                  setShowMobileMenu(false);
+                }}
+                style={{
+                  background: '#059669',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  width: '100%',
+                  minHeight: '48px',
+                  marginBottom: '8px'
+                }}
+              >
+                👤 Profile
+              </button>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setShowMobileMenu(false);
+                }}
+                style={{
+                  background: '#dc2626',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  width: '100%',
+                  minHeight: '48px'
+                }}
+              >
+                🚪 Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Desktop Sidebar */}
       <nav style={{
         background: '#fff',
@@ -121,8 +349,8 @@ function AdminDashboard() {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh'
-      }}>
-        {/* Header */}
+      }} className="hide-mobile">
+        {/* Desktop Header */}
         <header style={{
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: '#fff',
@@ -147,35 +375,14 @@ function AdminDashboard() {
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
               }}>
-                🥛 Admin Dashboard
+                🥛 {userInfo?.username || 'Admin'} Dashboard
               </h1>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '8px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: '40px',
-                  minHeight: '40px'
-                }}
-                className="show-mobile hide-desktop"
-              >
-                ☰
-              </button>
-
               {/* Profile Button */}
               <button
-                onClick={() => setShowProfile(true)}
+                onClick={() => navigate('/profile')}
                 style={{
                   background: 'rgba(255, 255, 255, 0.2)',
                   color: '#fff',
@@ -188,7 +395,6 @@ function AdminDashboard() {
                   minHeight: '40px',
                   whiteSpace: 'nowrap'
                 }}
-                className="hide-mobile"
               >
                 👤 Profile
               </button>
@@ -208,99 +414,12 @@ function AdminDashboard() {
                   minHeight: '40px',
                   whiteSpace: 'nowrap'
                 }}
-                className="hide-mobile"
               >
                 🚪 Logout
               </button>
             </div>
           </div>
         </header>
-
-        {/* Mobile Menu */}
-        {showMobileMenu && (
-          <div style={{
-            background: '#fff',
-            borderBottom: '1px solid #e2e8f0',
-            padding: '16px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            zIndex: 99
-          }} className="show-mobile hide-desktop">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {menuItems.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => {
-                    navigate(item.path);
-                    setShowMobileMenu(false);
-                  }}
-                  style={{
-                    background: isActive(item.path) ? '#2563eb' : 'transparent',
-                    color: isActive(item.path) ? '#fff' : '#2d3748',
-                    border: 'none',
-                    padding: '12px 16px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                    fontWeight: isActive(item.path) ? '600' : '500',
-                    transition: 'all 0.2s',
-                    minHeight: '44px'
-                  }}
-                >
-                  {item.icon} {item.label}
-                </button>
-              ))}
-              <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '8px', paddingTop: '8px' }}>
-                <button
-                  onClick={() => {
-                    setShowProfile(true);
-                    setShowMobileMenu(false);
-                  }}
-                  style={{
-                    background: 'transparent',
-                    color: '#2d3748',
-                    border: 'none',
-                    padding: '12px 16px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                    fontWeight: '500',
-                    width: '100%',
-                    minHeight: '44px'
-                  }}
-                >
-                  👤 Profile
-                </button>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setShowMobileMenu(false);
-                  }}
-                  style={{
-                    background: 'transparent',
-                    color: '#dc2626',
-                    border: 'none',
-                    padding: '12px 16px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                    fontWeight: '500',
-                    width: '100%',
-                    minHeight: '44px'
-                  }}
-                >
-                  🚪 Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Content Area */}
         <main style={{
@@ -322,6 +441,33 @@ function AdminDashboard() {
         </main>
       </div>
 
+      {/* Mobile Content Area */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 'calc(100vh - 60px)'
+      }} className="show-mobile hide-desktop">
+        {/* Mobile Content */}
+        <main style={{
+          flex: 1,
+          padding: 'clamp(8px, 2vw, 12px)',
+          overflowY: 'auto',
+          background: '#f7fafc'
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '8px',
+            padding: 'clamp(12px, 3vw, 16px)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            minHeight: 'calc(100vh - 120px)',
+            overflow: 'auto'
+          }}>
+            <Outlet />
+          </div>
+        </main>
+      </div>
+
       {/* Profile Management Modal */}
       {showProfile && (
         <ProfileManagement
@@ -329,6 +475,18 @@ function AdminDashboard() {
           onLogout={handleLogout}
         />
       )}
+
+      {/* CSS Animation for mobile sidebar */}
+      <style>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(-100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

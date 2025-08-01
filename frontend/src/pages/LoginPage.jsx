@@ -40,6 +40,7 @@ function LoginPage() {
         setMessage(errorData.message || 'Failed to authenticate');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setMessage(err.message || 'Network error. Please try again.');
     }
     setLoading(false);
@@ -60,32 +61,42 @@ function LoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
+      padding: 'clamp(10px, 3vw, 20px)',
       boxSizing: 'border-box'
     }}>
-              <div style={{
-          background: '#fff',
-          borderRadius: '16px',
-          padding: 'clamp(20px, 5vw, 32px)',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-          width: '100%',
-          maxWidth: 'clamp(300px, 90vw, 400px)',
-          margin: '0 auto'
-        }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '16px',
+        padding: 'clamp(20px, 5vw, 32px)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+        width: '100%',
+        maxWidth: 'clamp(300px, 90vw, 400px)',
+        margin: '0 auto'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: 'clamp(20px, 4vw, 32px)' }}>
           <h1 style={{ 
             color: '#2d3748', 
             marginBottom: '8px',
-            fontSize: 'clamp(1.5rem, 4vw, 2rem)'
+            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+            fontWeight: '600'
           }}>
             🥛 Dairy Management
           </h1>
-          <p style={{ color: '#718096', fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' }}>
+          <p style={{ 
+            color: '#718096', 
+            fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+            margin: 0
+          }}>
             {isLogin ? 'Welcome back!' : 'Create your account'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleSubmit} style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 'clamp(12px, 3vw, 16px)',
+          width: '100%'
+        }}>
           <div>
             <label style={{ 
               display: 'block', 
@@ -104,12 +115,13 @@ function LoginPage() {
               required
               style={{
                 width: '100%',
-                padding: '12px 16px',
+                padding: 'clamp(10px, 2.5vw, 12px) clamp(12px, 3vw, 16px)',
                 border: '2px solid #e2e8f0',
                 borderRadius: '8px',
-                fontSize: '16px',
+                fontSize: 'clamp(14px, 3vw, 16px)',
                 transition: 'border-color 0.2s',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                minHeight: '44px'
               }}
               placeholder={isLogin ? "Enter username or email" : "Choose a username"}
             />
@@ -133,12 +145,13 @@ function LoginPage() {
               required
               style={{
                 width: '100%',
-                padding: '12px 16px',
+                padding: 'clamp(10px, 2.5vw, 12px) clamp(12px, 3vw, 16px)',
                 border: '2px solid #e2e8f0',
                 borderRadius: '8px',
-                fontSize: '16px',
+                fontSize: 'clamp(14px, 3vw, 16px)',
                 transition: 'border-color 0.2s',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                minHeight: '44px'
               }}
               placeholder="Enter your password"
             />
@@ -160,12 +173,13 @@ function LoginPage() {
               onChange={handleChange}
               style={{
                 width: '100%',
-                padding: '12px 16px',
+                padding: 'clamp(10px, 2.5vw, 12px) clamp(12px, 3vw, 16px)',
                 border: '2px solid #e2e8f0',
                 borderRadius: '8px',
-                fontSize: '16px',
+                fontSize: 'clamp(14px, 3vw, 16px)',
                 backgroundColor: '#fff',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                minHeight: '44px'
               }}
             >
               <option value="admin">Admin</option>
@@ -178,14 +192,14 @@ function LoginPage() {
             disabled={loading}
             style={{
               width: '100%',
-              padding: '14px 20px',
-              background: '#2563eb',
+              padding: 'clamp(12px, 3vw, 14px) clamp(16px, 4vw, 20px)',
+              background: loading ? '#9ca3af' : '#2563eb',
               color: '#fff',
               border: 'none',
               borderRadius: '8px',
-              fontSize: '16px',
+              fontSize: 'clamp(14px, 3vw, 16px)',
               fontWeight: '600',
-              cursor: 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
               transition: 'background-color 0.2s',
               marginTop: '8px',
               minHeight: '48px'
@@ -196,7 +210,7 @@ function LoginPage() {
         </form>
 
         {isLogin && (
-          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+          <div style={{ textAlign: 'center', marginTop: 'clamp(12px, 3vw, 16px)' }}>
             <button
               onClick={() => setShowForgotPassword(true)}
               style={{
@@ -205,7 +219,8 @@ function LoginPage() {
                 color: '#2563eb',
                 cursor: 'pointer',
                 fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                textDecoration: 'underline'
+                textDecoration: 'underline',
+                padding: '4px 8px'
               }}
             >
               Forgot Password?
@@ -215,13 +230,14 @@ function LoginPage() {
 
         {message && (
           <div style={{
-            marginTop: '16px',
-            padding: '12px',
+            marginTop: 'clamp(12px, 3vw, 16px)',
+            padding: 'clamp(8px, 2vw, 12px)',
             borderRadius: '8px',
-            backgroundColor: message.includes('error') ? '#fef2f2' : '#f0fdf4',
-            color: message.includes('error') ? '#dc2626' : '#059669',
+            backgroundColor: message.includes('error') || message.includes('Failed') || message.includes('Invalid') ? '#fef2f2' : '#f0fdf4',
+            color: message.includes('error') || message.includes('Failed') || message.includes('Invalid') ? '#dc2626' : '#059669',
             textAlign: 'center',
-            fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
+            fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+            border: `1px solid ${message.includes('error') || message.includes('Failed') || message.includes('Invalid') ? '#fecaca' : '#bbf7d0'}`
           }}>
             {message}
           </div>
@@ -229,8 +245,8 @@ function LoginPage() {
 
         <div style={{ 
           textAlign: 'center', 
-          marginTop: '24px',
-          paddingTop: '24px',
+          marginTop: 'clamp(16px, 4vw, 24px)',
+          paddingTop: 'clamp(16px, 4vw, 24px)',
           borderTop: '1px solid #e2e8f0'
         }}>
           <button
@@ -245,7 +261,8 @@ function LoginPage() {
               color: '#2563eb',
               cursor: 'pointer',
               fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-              textDecoration: 'underline'
+              textDecoration: 'underline',
+              padding: '4px 8px'
             }}
           >
             {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Login'}

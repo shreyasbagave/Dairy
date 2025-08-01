@@ -10,6 +10,7 @@ import MilkLogging from './pages/MilkLogging';
 import MilkLogView from './pages/MilkLogView';
 import DashboardHome from './components/DashboardHome';
 import ResetPassword from './pages/ResetPassword';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   useEffect(() => {
@@ -31,6 +32,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />}>
           <Route index element={<DashboardHome />} />
           <Route path="farmers" element={<FarmerManagement />} />

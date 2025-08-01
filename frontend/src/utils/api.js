@@ -3,12 +3,20 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   
+  // Get token from localStorage
+  const token = localStorage.getItem('token');
+  
   const defaultOptions = {
     headers: {
       'Content-Type': 'application/json',
     },
     credentials: 'include',
   };
+
+  // Add Authorization header if token exists
+  if (token) {
+    defaultOptions.headers['Authorization'] = `Bearer ${token}`;
+  }
 
   const finalOptions = {
     ...defaultOptions,
@@ -38,4 +46,15 @@ export const setAuthToken = (token) => {
   } else {
     localStorage.removeItem('token');
   }
+};
+
+// Helper function to check if user is authenticated
+export const isAuthenticated = () => {
+  const token = localStorage.getItem('token');
+  return !!token;
+};
+
+// Helper function to clear authentication
+export const clearAuth = () => {
+  localStorage.removeItem('token');
 }; 
