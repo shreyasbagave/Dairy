@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://dairy-1-baro.onrender.com';
+const API_BASE_URL = 'https://dairy-1-baro.onrender.com';
 
 export const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
