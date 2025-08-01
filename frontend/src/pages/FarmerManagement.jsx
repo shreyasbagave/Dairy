@@ -77,7 +77,7 @@ function FarmerManagement() {
       
       if (res.ok) {
         const text = await res.text();
-        const newFarmer = text ? JSON.parse(text)
+        const newFarmer = text ? JSON.parse(text);
         console.log('New farmer created:', newFarmer);
         setFarmers([...farmers, newFarmer]);
         setForm({ id: '', name: '', phone: '', address: '', accountNo: '', ifsc: '' });
