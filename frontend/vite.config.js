@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/admin': 'http://localhost:5000',
+      '/admin': 'https://dairy-1-baro.onrender.com',
     },
   },
 }); 
