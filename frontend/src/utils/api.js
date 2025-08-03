@@ -28,7 +28,17 @@ export const apiCall = async (endpoint, options = {}) => {
   };
 
   try {
+    console.log(`Making API call to: ${url}`);
+    console.log('Request options:', {
+      method: finalOptions.method || 'GET',
+      headers: finalOptions.headers,
+      body: finalOptions.body ? 'Present' : 'None'
+    });
+    
     const response = await fetch(url, finalOptions);
+    
+    console.log(`Response status: ${response.status} ${response.statusText}`);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
     
     // Check if response is ok before trying to parse JSON
     if (!response.ok) {
@@ -44,7 +54,17 @@ export const apiCall = async (endpoint, options = {}) => {
       throw new Error(errorMessage);
     }
     
-    return response;
+    // Check if response has content before trying to parse JSON
+    const contentType = response.headers.get('content-type');
+    console.log('Response content-type:', contentType);
+    
+    if (contentType && contentType.includes('application/json')) {
+      // For JSON responses, we'll let the caller handle the parsing
+      return response;
+    } else {
+      // For non-JSON responses, return as is
+      return response;
+    }
   } catch (error) {
     console.error('API call failed:', error);
     if (error.name === 'TypeError' && error.message.includes('fetch')) {

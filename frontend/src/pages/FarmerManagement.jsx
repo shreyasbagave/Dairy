@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiCall } from '../utils/api';
 
 function FarmerManagement() {
   const [farmers, setFarmers] = useState([]);
@@ -12,90 +13,60 @@ function FarmerManagement() {
   });
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     const fetchFarmers = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/admin/farmers', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          credentials: 'include',
+        const response = await apiCall('/admin/farmers', {
+          method: 'GET'
         });
-        if (!res.ok) throw new Error('Failed to fetch farmers');
-        const data = await res.json();
-        setFarmers(data);
-      } catch (err) {
-        console.error('Error fetching farmers:', err);
+
+        if (response.ok) {
+          const data = await response.json();
+          setFarmers(data);
+        }
+      } catch (error) {
+        console.error('Error fetching farmers:', error);
       }
     };
+
     fetchFarmers();
   }, []);
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleAdd = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.id || !form.name || !form.phone || !form.address || !form.accountNo || !form.ifsc) {
-      alert('Please fill in all required fields');
-      return;
-    }
-    if (farmers.some(f => f.farmer_id === form.id)) return alert('Farmer ID must be unique!');
     setLoading(true);
+    setMessage('');
+
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('No authentication token found. Please login again.');
-        return;
-      }
-      
-      const requestBody = { 
-        farmer_id: form.id, 
-        name: form.name, 
-        phone: form.phone, 
-        address: form.address, 
-        bank_details: { 
-          account_no: form.accountNo, 
-          ifsc: form.ifsc 
-        } 
-      };
-      
-      console.log('Sending request:', requestBody);
-      
-      const res = await fetch('/admin/add-farmer', {
+      const response = await apiCall('/admin/add-farmer', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(form)
       });
-      
-      console.log('Response status:', res.status);
-      
-      if (res.ok) {
-        const newFarmer = await res.json();
-        console.log('New farmer created:', newFarmer);
-        setFarmers([...farmers, newFarmer]);
+
+      if (response.ok) {
+        setMessage('Farmer added successfully!');
         setForm({ id: '', name: '', phone: '', address: '', accountNo: '', ifsc: '' });
-        alert('Farmer added successfully!');
-      } else {
-        const errorData = await res.json();
-        console.error('Server error:', errorData);
-        
-        // Handle specific error cases
-        if (errorData.message && errorData.message.includes('already exists')) {
-          alert(`${errorData.message}\n\nSuggestion: ${errorData.suggestion || 'Try using a different Farmer ID'}`);
-        } else {
-          alert(errorData.message || `Failed to add farmer. Status: ${res.status}`);
+        // Refresh the farmers list
+        const refreshResponse = await apiCall('/admin/farmers', {
+          method: 'GET'
+        });
+        if (refreshResponse.ok) {
+          const data = await refreshResponse.json();
+          setFarmers(data);
         }
+      } else {
+        const errorData = await response.json();
+        setMessage(errorData.message || 'Failed to add farmer');
       }
-    } catch (err) {
-      console.error('Network error:', err);
-      alert(`Network error: ${err.message}`);
+    } catch (error) {
+      setMessage('Network error. Please try again.');
+      console.error('Error adding farmer:', error);
     }
+
     setLoading(false);
   };
 
@@ -217,7 +188,7 @@ function FarmerManagement() {
         }}>
           {editingId ? 'Edit Farmer' : 'Add New Farmer'}
         </h3>
-        <form onSubmit={editingId ? handleUpdate : handleAdd} style={{ 
+        <form onSubmit={editingId ? handleUpdate : handleSubmit} style={{ 
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
           gap: 'clamp(8px, 2vw, 12px)',
@@ -422,6 +393,20 @@ function FarmerManagement() {
             )}
           </div>
         </form>
+        {message && (
+          <div style={{ 
+            marginTop: 'clamp(12px, 3vw, 16px)', 
+            padding: 'clamp(8px, 2vw, 12px)', 
+            borderRadius: '6px', 
+            background: '#e2f3f5', 
+            color: '#065f46', 
+            border: '1px solid #a7f3d0', 
+            fontSize: 'clamp(14px, 3vw, 16px)',
+            textAlign: 'center'
+          }}>
+            {message}
+          </div>
+        )}
       </div>
 
       {/* Farmers Table */}

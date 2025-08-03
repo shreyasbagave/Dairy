@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiCall } from '../utils/api';
 
 const sessionOptions = ['Morning', 'Evening'];
 
@@ -40,24 +40,27 @@ function MilkLogging() {
   // Fetch logs for the selected date
   const fetchLogsForDate = async (dateToFetch) => {
     if (!dateToFetch) return;
-    setLogsLoading(true);
-    setLogsError('');
+    
+    setLoading(true);
+    setMessage('');
+    
     try {
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams({ date: dateToFetch });
-      const res = await fetch(`/admin/filter-milk-logs?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
+      const response = await apiCall(`/admin/filter-milk-logs?${params.toString()}`, {
+        method: 'GET'
       });
-      if (!res.ok) throw new Error('Failed to fetch logs');
-      const data = await res.json();
-      setLogs(data);
-    } catch (err) {
-      setLogsError(err.message || 'Error fetching logs');
+
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data);
+      } else {
+        setMessage('Failed to fetch logs');
+      }
+    } catch (error) {
+      setMessage(error.message || 'Error fetching logs');
     }
-    setLogsLoading(false);
+    
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -70,20 +73,19 @@ function MilkLogging() {
   useEffect(() => {
     const fetchFarmers = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/admin/farmers', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          credentials: 'include',
+        const response = await apiCall('/admin/farmers', {
+          method: 'GET'
         });
-        if (!res.ok) throw new Error('Failed to fetch farmers');
-        const data = await res.json();
-        setFarmers(data);
-      } catch (err) {
-        console.error('Error fetching farmers:', err);
+
+        if (response.ok) {
+          const data = await response.json();
+          setFarmers(data);
+        }
+      } catch (error) {
+        console.error('Error fetching farmers:', error);
       }
     };
+
     fetchFarmers();
   }, []);
 
@@ -99,32 +101,35 @@ function MilkLogging() {
     if (!session) return alert('Please select a session!');
     setLoading(true);
     setMessage('');
-    const token = localStorage.getItem('token');
-    const res = await fetch('/admin/add-milk-log', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        farmer_id: form.farmerId,
-        date,
-        session,
-        quantity_liters: Number(form.quantity),
-        fat_percent: Number(form.fat),
-        rate_per_liter: Number(form.rate)
-      })
-    });
-    if (res.ok) {
-      setMessage('Milk log added successfully!');
-      setForm({ farmerId: '', quantity: '', fat: '', rate: '' });
-      setTotalCost(0);
-      // Refetch logs for the selected date
-      fetchLogsForDate(date);
-    } else {
-      setMessage('Failed to add milk log.');
+    
+    try {
+      const response = await apiCall('/admin/add-milk-log', {
+        method: 'POST',
+        body: JSON.stringify({
+          farmer_id: form.farmerId,
+          date,
+          session,
+          quantity_liters: Number(form.quantity),
+          fat_percent: Number(form.fat),
+          rate_per_liter: Number(form.rate)
+        })
+      });
+      
+      if (response.ok) {
+        setMessage('Milk log added successfully!');
+        setForm({ farmerId: '', quantity: '', fat: '', rate: '' });
+        setTotalCost(0);
+        // Refetch logs for the selected date
+        fetchLogsForDate(date);
+      } else {
+        const errorData = await response.json();
+        setMessage(errorData.message || 'Failed to add milk log.');
+      }
+    } catch (error) {
+      setMessage('Network error. Please try again.');
+      console.error('Error adding milk log:', error);
     }
+    
     setLoading(false);
   };
 
@@ -146,23 +151,18 @@ function MilkLogging() {
     if (!confirm(confirmMessage)) return;
     
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/admin/delete-milk-log/${logId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include'
+      const response = await apiCall(`/admin/delete-milk-log/${logId}`, {
+        method: 'DELETE'
       });
       
-      if (res.ok) {
-        const result = await res.json();
+      if (response.ok) {
+        const result = await response.json();
         alert(`✅ Milk log deleted successfully!\n\nDeleted:\n• Farmer ID: ${result.deletedLog.farmer_id}\n• Date: ${new Date(result.deletedLog.date).toLocaleDateString()}\n• Session: ${result.deletedLog.session}\n• Quantity: ${result.deletedLog.quantity_liters}L`);
         
         // Refetch logs for the selected date
         fetchLogsForDate(date);
       } else {
-        const errorData = await res.json();
+        const errorData = await response.json();
         alert(`❌ Failed to delete milk log: ${errorData.message || 'Unknown error'}`);
       }
     } catch (err) {

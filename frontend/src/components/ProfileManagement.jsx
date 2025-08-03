@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiCall } from '../utils/api';
 
 const ProfileManagement = ({ isOpen, onClose }) => {
   const [adminInfo, setAdminInfo] = useState({ username: '', role: 'admin' });
@@ -56,30 +57,25 @@ const ProfileManagement = ({ isOpen, onClose }) => {
     setMessage('');
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/admin/change-password', {
+      const response = await apiCall('/admin/change-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword
         })
       });
 
-      if (res.ok) {
+      if (response.ok) {
         setMessage('Password changed successfully!');
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         setShowChangePassword(false);
       } else {
-        const errorData = await res.json();
+        const errorData = await response.json();
         setMessage(errorData.message || 'Failed to change password');
       }
-    } catch (err) {
+    } catch (error) {
       setMessage('Network error. Please try again.');
+      console.error('Error changing password:', error);
     }
 
     setLoading(false);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiCall } from '../utils/api';
 
 const sessionOptions = ['All', 'Morning', 'Evening'];
 const sectionOptions = ['All', '1-10', '11-20', '21-End'];
@@ -20,20 +21,19 @@ function ViewFarmerRecords() {
   useEffect(() => {
     const fetchFarmers = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/admin/farmers', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          credentials: 'include',
+        const response = await apiCall('/admin/farmers', {
+          method: 'GET'
         });
-        if (!res.ok) throw new Error('Failed to fetch farmers');
-        const data = await res.json();
-        setFarmers(data);
-      } catch (err) {
-        console.error('Error fetching farmers:', err);
+
+        if (response.ok) {
+          const data = await response.json();
+          setFarmers(data);
+        }
+      } catch (error) {
+        console.error('Error fetching farmers:', error);
       }
     };
+
     fetchFarmers();
   }, []);
 

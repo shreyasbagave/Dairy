@@ -8,11 +8,21 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 const corsOptions = {
-  origin: ['http://localhost:5173', 'https://dairy-frontend-1.onrender.com'],
+  origin: [
+    'http://localhost:5173', 
+    'https://dairy-frontend-1.onrender.com',
+    'https://dairy-frontend-1-baro.onrender.com'
+  ],
   credentials: true,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Add request logging for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
+  next();
+});
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
@@ -35,23 +45,19 @@ app.use('/admin', adminRoutes);
 
 const farmerRoutes = require('./src/routes/farmer');
 app.use('/farmer', farmerRoutes);
-// ...existing code...
-
-// Log all requests for debugging
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  next();
-});
 
 // Catch-all 404 handler (must be after all routes)
 app.use((req, res) => {
+  console.log(`404 - ${req.method} ${req.url} not found`);
   res.status(404).json({ message: 'Endpoint not found' });
 });
 
-// ...existing code...
-
-// TODO: Add routes here
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(500).json({ message: 'Internal server error' });
+});
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

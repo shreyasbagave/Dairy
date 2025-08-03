@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiCall } from '../utils/api';
 
 const sectionOptions = ['All', '1-10', '11-20', '21-End'];
 const sessionOptions = ['All', 'Morning', 'Evening'];
@@ -17,39 +18,32 @@ function MilkLogView() {
 
   useEffect(() => {
     const fetchLogs = async () => {
-      setLoading(true);
-      setError('');
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/admin/milk-logs', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          credentials: 'include',
+        const response = await apiCall('/admin/milk-logs', {
+          method: 'GET'
         });
-        if (!res.ok) throw new Error('Failed to fetch milk logs');
-        const data = await res.json();
-        setLogs(data);
-      } catch (err) {
-        setError(err.message || 'Error fetching logs');
+
+        if (response.ok) {
+          const data = await response.json();
+          setLogs(data);
+        }
+      } catch (error) {
+        console.error('Error fetching logs:', error);
       }
-      setLoading(false);
     };
 
     const fetchFarmers = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/admin/farmers', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          credentials: 'include',
+        const response = await apiCall('/admin/farmers', {
+          method: 'GET'
         });
-        if (!res.ok) throw new Error('Failed to fetch farmers');
-        const data = await res.json();
-        setFarmers(data);
-      } catch (err) {
-        console.error('Error fetching farmers:', err);
+
+        if (response.ok) {
+          const data = await response.json();
+          setFarmers(data);
+        }
+      } catch (error) {
+        console.error('Error fetching farmers:', error);
       }
     };
 
