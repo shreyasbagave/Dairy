@@ -42,9 +42,21 @@ function FarmerManagement() {
     setMessage('');
 
     try {
+      // Structure the data to match backend expectations
+      const requestData = {
+        farmer_id: form.id,
+        name: form.name,
+        phone: form.phone,
+        address: form.address,
+        bank_details: {
+          account_no: form.accountNo,
+          ifsc: form.ifsc
+        }
+      };
+
       const response = await apiCall('/admin/add-farmer', {
         method: 'POST',
-        body: JSON.stringify(form)
+        body: JSON.stringify(requestData)
       });
 
       if (response.ok) {
@@ -91,35 +103,34 @@ function FarmerManagement() {
     }
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/admin/edit-farmer/${form.id}`, {
+      const requestData = {
+        name: form.name,
+        phone: form.phone,
+        address: form.address,
+        bank_details: {
+          account_no: form.accountNo,
+          ifsc: form.ifsc
+        }
+      };
+
+      const response = await apiCall(`/admin/edit-farmer/${form.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify({ 
-          name: form.name, 
-          phone: form.phone, 
-          address: form.address,
-          bank_details: { 
-            account_no: form.accountNo, 
-            ifsc: form.ifsc 
-          }
-        })
+        body: JSON.stringify(requestData)
       });
-      if (res.ok) {
-        const updatedFarmer = await res.json();
+
+      if (response.ok) {
+        const updatedFarmer = await response.json();
         setFarmers(farmers.map(f => f.farmer_id === form.id ? updatedFarmer : f));
         setForm({ id: '', name: '', phone: '', address: '', accountNo: '', ifsc: '' });
         setEditingId(null);
+        setMessage('Farmer updated successfully!');
       } else {
-        const errorData = await res.json();
-        alert(errorData.message || 'Failed to update farmer');
+        const errorData = await response.json();
+        setMessage(errorData.message || 'Failed to update farmer');
       }
-    } catch (err) {
-      alert('Failed to update farmer');
+    } catch (error) {
+      setMessage('Network error. Please try again.');
+      console.error('Error updating farmer:', error);
     }
     setLoading(false);
   };
@@ -131,24 +142,20 @@ function FarmerManagement() {
     if (!confirm(confirmMessage)) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/admin/delete-farmer/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include'
+      const response = await apiCall(`/admin/delete-farmer/${id}`, {
+        method: 'DELETE'
       });
-      if (res.ok) {
-        const result = await res.json();
+
+      if (response.ok) {
+        const result = await response.json();
         setFarmers(farmers.filter(f => f.farmer_id !== id));
         alert(`✅ Farmer deleted successfully!\n\nDeleted:\n• Farmer: ${result.deletedFarmer.name}\n• Milk logs: ${result.deletedMilkLogs}\n• User accounts: ${result.deletedUserAccounts}`);
       } else {
-        const errorData = await res.json();
+        const errorData = await response.json();
         alert(`❌ Failed to delete farmer: ${errorData.message || 'Unknown error'}`);
       }
-    } catch (err) {
-      alert(`❌ Network error: ${err.message}`);
+    } catch (error) {
+      alert(`❌ Network error: ${error.message}`);
     }
     setLoading(false);
   };
