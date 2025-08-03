@@ -25,6 +25,7 @@ function MilkLogging() {
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState('');
   const [farmers, setFarmers] = useState([]);
+  const [logsCache, setLogsCache] = useState({}); // Simple cache for logs
 
   const handleFormChange = e => {
     const { name, value } = e.target;
@@ -41,14 +42,18 @@ function MilkLogging() {
   const fetchLogsForDate = async (dateToFetch) => {
     if (!dateToFetch) return;
     
-    setLoading(true);
-    setMessage('');
+    // Check cache first
+    if (logsCache[dateToFetch]) {
+      setLogs(logsCache[dateToFetch]);
+      return;
+    }
+    
+    setLogsLoading(true);
+    setLogsError('');
     
     try {
-      const params = new URLSearchParams({ 
-        date: dateToFetch,
-        session: session // Include the current session
-      });
+      // Only send date parameter, filter by session on frontend
+      const params = new URLSearchParams({ date: dateToFetch });
       const response = await apiCall(`/admin/filter-milk-logs?${params.toString()}`, {
         method: 'GET'
       });
@@ -56,21 +61,30 @@ function MilkLogging() {
       if (response.ok) {
         const data = await response.json();
         setLogs(data);
+        // Cache the result
+        setLogsCache(prev => ({ ...prev, [dateToFetch]: data }));
       } else {
-        setMessage('Failed to fetch logs');
+        setLogsError('Failed to fetch logs');
       }
     } catch (error) {
-      setMessage(error.message || 'Error fetching logs');
+      setLogsError(error.message || 'Error fetching logs');
     }
     
-    setLoading(false);
+    setLogsLoading(false);
   };
 
+  // Debounced fetch to prevent excessive API calls
   useEffect(() => {
-    if (date) fetchLogsForDate(date);
-    else setLogs([]);
-    // eslint-disable-next-line
-  }, [date, session]); // Add session as a dependency
+    const timeoutId = setTimeout(() => {
+      if (date) {
+        fetchLogsForDate(date);
+      } else {
+        setLogs([]);
+      }
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [date]); // Remove session dependency to prevent excessive calls
 
   // Fetch farmers for name lookup
   useEffect(() => {
@@ -122,6 +136,12 @@ function MilkLogging() {
         setMessage('Milk log added successfully!');
         setForm({ farmerId: '', quantity: '', fat: '', rate: '' });
         setTotalCost(0);
+        // Clear cache for this date to force refresh
+        setLogsCache(prev => {
+          const newCache = { ...prev };
+          delete newCache[date];
+          return newCache;
+        });
         // Refetch logs for the selected date
         fetchLogsForDate(date);
       } else {
@@ -162,6 +182,12 @@ function MilkLogging() {
         const result = await response.json();
         alert(`✅ Milk log deleted successfully!\n\nDeleted:\n• Farmer ID: ${result.deletedLog.farmer_id}\n• Date: ${new Date(result.deletedLog.date).toLocaleDateString()}\n• Session: ${result.deletedLog.session}\n• Quantity: ${result.deletedLog.quantity_liters}L`);
         
+        // Clear cache for this date to force refresh
+        setLogsCache(prev => {
+          const newCache = { ...prev };
+          delete newCache[date];
+          return newCache;
+        });
         // Refetch logs for the selected date
         fetchLogsForDate(date);
       } else {

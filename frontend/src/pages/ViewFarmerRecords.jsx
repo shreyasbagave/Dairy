@@ -9,11 +9,15 @@ function ViewFarmerRecords() {
   const [farmers, setFarmers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Set current month as default
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+  
   const [filters, setFilters] = useState({
     farmerId: '', // Add farmerId to filters
     session: 'All',
     section: 'All',
-    month: ''
+    month: currentMonth // Set current month as default
   });
   const [showDetails, setShowDetails] = useState(false);
 
@@ -80,16 +84,29 @@ function ViewFarmerRecords() {
 
   const handleChange = e => setFilters({ ...filters, [e.target.name]: e.target.value });
 
-  // Group logs by session and section
-  const groupedLogs = logs.reduce((groups, log) => {
-    const section = (() => {
-      if (!log.date) return '';
-      const day = new Date(log.date).getDate();
-      if (day >= 1 && day <= 10) return '1-10';
-      if (day >= 11 && day <= 20) return '11-20';
-      return '21-End';
-    })();
+  // Helper function to get section from date
+  const getSectionFromDate = (date) => {
+    if (!date) return '';
+    const day = new Date(date).getDate();
+    if (day >= 1 && day <= 10) return '1-10';
+    if (day >= 11 && day <= 20) return '11-20';
+    return '21-End';
+  };
+
+  // Filter logs based on all applied filters
+  const filteredLogs = logs.filter(log => {
+    const section = getSectionFromDate(log.date);
     
+    return (
+      (filters.session === 'All' || log.session === filters.session) &&
+      (filters.section === 'All' || section === filters.section) &&
+      (!filters.month || (log.date && log.date.startsWith(filters.month)))
+    );
+  });
+
+  // Group filtered logs by session and section
+  const groupedLogs = filteredLogs.reduce((groups, log) => {
+    const section = getSectionFromDate(log.date);
     const key = `${log.session}-${section}`;
     
     if (!groups[key]) {
@@ -118,27 +135,22 @@ function ViewFarmerRecords() {
     group.fat_percent = group.count > 0 ? (group.fat_percent / group.count).toFixed(2) : 0;
   });
 
-  const filtered = Object.values(groupedLogs).filter(log => {
-    return (
-      (filters.session === 'All' || log.session === filters.session) &&
-      (filters.section === 'All' || log.section === filters.section) &&
-      (!filters.month || log.entries.some(entry => entry.date && entry.date.startsWith(filters.month)))
-    );
-  });
+  // Get the final filtered and grouped data
+  const finalGroupedLogs = Object.values(groupedLogs);
 
-  const totalMilk = filtered.reduce((sum, l) => sum + l.quantity_liters, 0);
-  const totalCost = filtered.reduce((sum, l) => sum + l.total_cost, 0);
-  const avgFat = filtered.length > 0 ? (filtered.reduce((sum, l) => sum + parseFloat(l.fat_percent), 0) / filtered.length).toFixed(2) : 0;
+  const totalMilk = finalGroupedLogs.reduce((sum, l) => sum + l.quantity_liters, 0);
+  const totalCost = finalGroupedLogs.reduce((sum, l) => sum + l.total_cost, 0);
+  const avgFat = finalGroupedLogs.length > 0 ? (finalGroupedLogs.reduce((sum, l) => sum + parseFloat(l.fat_percent), 0) / finalGroupedLogs.length).toFixed(2) : 0;
 
   const exportCSV = () => {
-    if (filtered.length === 0) {
+    if (finalGroupedLogs.length === 0) {
       alert('No data to export');
       return;
     }
     
     // Create CSV content with summary data
     const summaryHeaders = ['Session', 'Section', 'Quantity (L)', 'Fat %', 'Total Cost', 'Entry Count'];
-    const summaryData = filtered.map(log => [
+    const summaryData = finalGroupedLogs.map(log => [
       log.session,
       log.section,
       log.quantity_liters,
@@ -151,13 +163,7 @@ function ViewFarmerRecords() {
     const detailHeaders = ['Date', 'Session', 'Section', 'Quantity (L)', 'Fat %', 'Rate', 'Total Cost'];
     const detailData = logs
       .filter(log => {
-        const section = (() => {
-          if (!log.date) return '';
-          const day = new Date(log.date).getDate();
-          if (day >= 1 && day <= 10) return '1-10';
-          if (day >= 11 && day <= 20) return '11-20';
-          return '21-End';
-        })();
+        const section = getSectionFromDate(log.date);
         
         return (
           (filters.session === 'All' || log.session === filters.session) &&
@@ -167,13 +173,7 @@ function ViewFarmerRecords() {
       })
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .map(entry => {
-        const section = (() => {
-          if (!entry.date) return '';
-          const day = new Date(entry.date).getDate();
-          if (day >= 1 && day <= 10) return '1-10';
-          if (day >= 11 && day <= 20) return '11-20';
-          return '21-End';
-        })();
+        const section = getSectionFromDate(entry.date);
         
         return [
           entry.date ? entry.date.slice(0, 10) : '',
@@ -212,13 +212,7 @@ function ViewFarmerRecords() {
   // Sort individual entries by date
   const sortedEntries = logs
     .filter(log => {
-      const section = (() => {
-        if (!log.date) return '';
-        const day = new Date(log.date).getDate();
-        if (day >= 1 && day <= 10) return '1-10';
-        if (day >= 11 && day <= 20) return '11-20';
-        return '21-End';
-      })();
+      const section = getSectionFromDate(log.date);
       
       return (
         (filters.session === 'All' || log.session === filters.session) &&
@@ -263,24 +257,44 @@ function ViewFarmerRecords() {
 
       {/* Filters */}
       {logs.length > 0 && (
-        <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <label htmlFor="filter-month" style={{ marginBottom: 4, fontWeight: 500 }}>Month</label>
-            <input id="filter-month" name="month" type="month" value={filters.month} onChange={handleChange} placeholder="Month" style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 140, textAlign: 'center' }} />
+        <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginBottom: 32, boxShadow: '0 1px 4px #0001' }}>
+          <h3 style={{ marginBottom: 16, textAlign: 'center' }}>Filter Records</h3>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <label htmlFor="filter-month" style={{ marginBottom: 4, fontWeight: 500 }}>Month</label>
+              <input id="filter-month" name="month" type="month" value={filters.month} onChange={handleChange} placeholder="Month" style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 140, textAlign: 'center' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <label htmlFor="filter-session" style={{ marginBottom: 4, fontWeight: 500 }}>Session</label>
+              <select id="filter-session" name="session" value={filters.session} onChange={handleChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 120, textAlign: 'center' }}>
+                {sessionOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <label htmlFor="filter-section" style={{ marginBottom: 4, fontWeight: 500 }}>Section</label>
+              <select id="filter-section" name="section" value={filters.section} onChange={handleChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 120, textAlign: 'center' }}>
+                {sectionOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
+            <button onClick={exportCSV} style={{ padding: 8, borderRadius: 6, background: '#2563eb', color: '#fff', border: 'none', minWidth: 120, alignSelf: 'end', marginTop: 22 }}>Export to CSV</button>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <label htmlFor="filter-session" style={{ marginBottom: 4, fontWeight: 500 }}>Session</label>
-            <select id="filter-session" name="session" value={filters.session} onChange={handleChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 120, textAlign: 'center' }}>
-              {sessionOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
+          
+          {/* Filter Status */}
+          <div style={{ 
+            background: '#f0f9ff', 
+            border: '1px solid #0ea5e9', 
+            borderRadius: 6, 
+            padding: 12, 
+            textAlign: 'center',
+            fontSize: 14,
+            color: '#0369a1'
+          }}>
+            <strong>Active Filters:</strong> 
+            Month: {filters.month || 'All'} | 
+            Session: {filters.session} | 
+            Section: {filters.section} | 
+            Showing {finalGroupedLogs.length} grouped entries ({filteredLogs.length} total entries)
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <label htmlFor="filter-section" style={{ marginBottom: 4, fontWeight: 500 }}>Section</label>
-            <select id="filter-section" name="section" value={filters.section} onChange={handleChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 120, textAlign: 'center' }}>
-              {sectionOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </div>
-          <button onClick={exportCSV} style={{ padding: 8, borderRadius: 6, background: '#2563eb', color: '#fff', border: 'none', minWidth: 120, alignSelf: 'end', marginTop: 22 }}>Export to CSV</button>
         </div>
       )}
 
@@ -291,7 +305,7 @@ function ViewFarmerRecords() {
         <div style={{ color: 'red', padding: 16, textAlign: 'center' }}>{error}</div>
       ) : logs.length === 0 && filters.farmerId ? (
         <div style={{ padding: 16, textAlign: 'center' }}>No records found for this farmer.</div>
-      ) : filtered.length > 0 ? (
+      ) : finalGroupedLogs.length > 0 ? (
         <>
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, background: '#fff', borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px #0001', marginTop: 8 }}>
             <thead>
@@ -305,7 +319,7 @@ function ViewFarmerRecords() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((log, idx) => (
+              {finalGroupedLogs.map((log, idx) => (
                 <tr key={`${log.session}-${log.section}`} style={{ background: idx % 2 === 0 ? '#f1f5f9' : '#fff', transition: 'background 0.2s' }}>
                   <td style={{ padding: 10, textAlign: 'center' }}>{log.session}</td>
                   <td style={{ padding: 10, textAlign: 'center' }}>{log.section}</td>
@@ -350,13 +364,7 @@ function ViewFarmerRecords() {
                 </thead>
                 <tbody>
                   {sortedEntries.map((entry, idx) => {
-                    const section = (() => {
-                      if (!entry.date) return '';
-                      const day = new Date(entry.date).getDate();
-                      if (day >= 1 && day <= 10) return '1-10';
-                      if (day >= 11 && day <= 20) return '11-20';
-                      return '21-End';
-                    })();
+                    const section = getSectionFromDate(entry.date);
                     
                     return (
                       <tr key={entry.log_id || entry._id || entry.id} style={{ background: idx % 2 === 0 ? '#f1f5f9' : '#fff', transition: 'background 0.2s' }}>

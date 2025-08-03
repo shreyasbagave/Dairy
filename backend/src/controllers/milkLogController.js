@@ -154,25 +154,47 @@ exports.filterMilkLogs = async (req, res) => {
     const { date, session, farmer_id, month, section } = req.query;
     const admin_id = req.user.userId; // Get admin ID from authenticated user
     
+    console.log('Filter milk logs request:', { date, session, farmer_id, month, section, admin_id });
+    
     let query = { admin_id }; // Always filter by admin_id first
-    if (date) query.date = new Date(date);
-    if (session) query.session = session;
+    
+    if (date) {
+      // Handle date filtering more efficiently
+      const dateObj = new Date(date);
+      const nextDay = new Date(dateObj);
+      nextDay.setDate(nextDay.getDate() + 1);
+      query.date = { $gte: dateObj, $lt: nextDay };
+    }
+    
+    // Only add session filter if it's provided and not empty
+    if (session && session.trim() !== '') {
+      query.session = session;
+    }
+    
     if (farmer_id) query.farmer_id = farmer_id;
+    
     if (month) {
       const start = new Date(month + '-01');
       const end = new Date(start);
       end.setMonth(end.getMonth() + 1);
       query.date = { $gte: start, $lt: end };
     }
+    
     // Section logic: section 1 = day 1-10, 2 = 11-20, 3 = 21-end
     if (section) {
       if (section === '1-10') query['$expr'] = { $and: [ { $gte: [{ $dayOfMonth: '$date' }, 1] }, { $lte: [{ $dayOfMonth: '$date' }, 10] } ] };
       if (section === '11-20') query['$expr'] = { $and: [ { $gte: [{ $dayOfMonth: '$date' }, 11] }, { $lte: [{ $dayOfMonth: '$date' }, 20] } ] };
       if (section === '21-End') query['$expr'] = { $gte: [{ $dayOfMonth: '$date' }, 21] };
     }
-    const logs = await MilkLog.find(query);
+    
+    console.log('MongoDB query:', JSON.stringify(query, null, 2));
+    
+    const logs = await MilkLog.find(query).sort({ date: -1, session: 1 });
+    console.log(`Found ${logs.length} logs for admin ${admin_id}`);
+    
     res.json(logs);
   } catch (err) {
+    console.error('Error in filterMilkLogs:', err);
     res.status(500).json({ message: 'Server error' });
   }
 }; 
