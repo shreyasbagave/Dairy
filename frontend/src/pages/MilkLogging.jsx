@@ -25,6 +25,7 @@ function MilkLogging() {
   
   const [date, setDate] = useState(currentDate);
   const [session, setSession] = useState('Morning');
+  const [selectedSection, setSelectedSection] = useState(getSectionFromDate(currentDate)); // Default to current section
   const [form, setForm] = useState({
     farmerId: '',
     quantity: '',
@@ -48,8 +49,15 @@ function MilkLogging() {
     }
   };
 
-  const handleDateChange = e => setDate(e.target.value);
+  const handleDateChange = e => {
+    const newDate = e.target.value;
+    setDate(newDate);
+    // Auto-update section when date changes, but allow manual override
+    setSelectedSection(getSectionFromDate(newDate));
+  };
+  
   const handleSessionChange = e => setSession(e.target.value);
+  const handleSectionChange = e => setSelectedSection(e.target.value);
 
   // Fetch logs for the selected date
   const fetchLogsForDate = async (dateToFetch) => {
@@ -132,6 +140,7 @@ function MilkLogging() {
     e.preventDefault();
     if (!date) return alert('Please select a date first!');
     if (!session) return alert('Please select a session!');
+    if (!selectedSection) return alert('Please select a section!');
     setLoading(true);
     setMessage('');
     
@@ -142,6 +151,7 @@ function MilkLogging() {
           farmer_id: form.farmerId,
           date,
           session,
+          section: selectedSection, // Include the selected section
           quantity_liters: Number(form.quantity),
           fat_percent: Number(form.fat),
           rate_per_liter: Number(form.rate)
@@ -338,22 +348,38 @@ function MilkLogging() {
           }}>
             Section:
           </label>
-          <span style={{ 
-            padding: 'clamp(8px, 2vw, 12px)', 
-            borderRadius: '6px', 
-            border: '1px solid #ccc',
-            fontSize: 'clamp(14px, 3vw, 16px)',
-            minHeight: '44px',
-            background: '#f1f5f9',
-            display: 'flex',
-            alignItems: 'center',
-            minWidth: '80px',
-            justifyContent: 'center',
-            fontWeight: '600',
-            color: '#2563eb'
-          }}>
-            {currentSection}
-          </span>
+          <select 
+            name="section" 
+            value={selectedSection} 
+            onChange={handleSectionChange} 
+            style={{ 
+              padding: 'clamp(8px, 2vw, 12px)', 
+              borderRadius: '6px', 
+              border: '1px solid #ccc',
+              fontSize: 'clamp(14px, 3vw, 16px)',
+              minHeight: '44px',
+              minWidth: '100px',
+              background: selectedSection === getSectionFromDate(date) ? '#f0f9ff' : '#fff',
+              borderColor: selectedSection === getSectionFromDate(date) ? '#0ea5e9' : '#ccc'
+            }}
+          >
+            <option value="1-10">1-10</option>
+            <option value="11-20">11-20</option>
+            <option value="21-End">21-End</option>
+          </select>
+          {selectedSection !== getSectionFromDate(date) && (
+            <span style={{ 
+              fontSize: 'clamp(10px, 2vw, 12px)', 
+              color: '#059669',
+              fontWeight: '500',
+              background: '#d1fae5',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              border: '1px solid #10b981'
+            }}>
+              Manual
+            </span>
+          )}
         </div>
       </div>
 

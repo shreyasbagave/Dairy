@@ -120,7 +120,7 @@ function AdminDashboard() {
             fontSize: 'clamp(1rem, 4vw, 1.3rem)',
             fontWeight: '600'
           }}>
-            🥛 {userInfo?.username || 'Admin'}
+            {userInfo?.username || 'Admin'}
           </h1>
         </div>
         
@@ -160,7 +160,7 @@ function AdminDashboard() {
               alignItems: 'center'
             }}>
               <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '600' }}>
-                🥛 {userInfo?.username || 'Admin'} Menu
+                {userInfo?.username || 'Admin'} Menu
               </h2>
               <button
                 onClick={() => setShowMobileMenu(false)}
@@ -307,7 +307,7 @@ function AdminDashboard() {
             minWidth: '40px'
           }}
         >
-          {sidebarCollapsed ? '→' : '←'}
+          ☰
         </button>
 
         {menuItems.map((item) => (
@@ -375,7 +375,7 @@ function AdminDashboard() {
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
               }}>
-                🥛 {userInfo?.username || 'Admin'} Dashboard
+                {userInfo?.username || 'Admin'} Dashboard
               </h1>
             </div>
 
