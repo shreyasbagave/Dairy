@@ -45,7 +45,10 @@ function MilkLogging() {
     setMessage('');
     
     try {
-      const params = new URLSearchParams({ date: dateToFetch });
+      const params = new URLSearchParams({ 
+        date: dateToFetch,
+        session: session // Include the current session
+      });
       const response = await apiCall(`/admin/filter-milk-logs?${params.toString()}`, {
         method: 'GET'
       });
@@ -67,7 +70,7 @@ function MilkLogging() {
     if (date) fetchLogsForDate(date);
     else setLogs([]);
     // eslint-disable-next-line
-  }, [date]);
+  }, [date, session]); // Add session as a dependency
 
   // Fetch farmers for name lookup
   useEffect(() => {

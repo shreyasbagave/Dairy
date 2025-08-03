@@ -5,12 +5,12 @@ const sessionOptions = ['All', 'Morning', 'Evening'];
 const sectionOptions = ['All', '1-10', '11-20', '21-End'];
 
 function ViewFarmerRecords() {
-  const [farmerId, setFarmerId] = useState('');
   const [logs, setLogs] = useState([]);
   const [farmers, setFarmers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({
+    farmerId: '', // Add farmerId to filters
     session: 'All',
     section: 'All',
     month: ''
@@ -37,6 +37,15 @@ function ViewFarmerRecords() {
     fetchFarmers();
   }, []);
 
+  // Fetch logs when farmerId changes
+  useEffect(() => {
+    if (filters.farmerId) {
+      fetchFarmerLogs();
+    } else {
+      setLogs([]);
+    }
+  }, [filters.farmerId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Function to get farmer name by farmer_id
   const getFarmerName = (farmerId) => {
     const farmer = farmers.find(f => f.farmer_id === farmerId);
@@ -44,27 +53,27 @@ function ViewFarmerRecords() {
   };
 
   const fetchFarmerLogs = async () => {
-    if (!farmerId.trim()) {
-      alert('Please enter a Farmer ID');
+    if (!filters.farmerId) {
+      setLogs([]);
       return;
     }
 
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const params = new URLSearchParams({ farmer_id: farmerId });
-      const res = await fetch(`/admin/filter-milk-logs?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
+      const params = new URLSearchParams({ farmer_id: filters.farmerId });
+      const response = await apiCall(`/admin/filter-milk-logs?${params.toString()}`, {
+        method: 'GET'
       });
-      if (!res.ok) throw new Error('Failed to fetch farmer logs');
-      const data = await res.json();
-      setLogs(data);
-    } catch (err) {
-      setError(err.message || 'Error fetching logs');
+
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data);
+      } else {
+        setError('Failed to fetch farmer logs');
+      }
+    } catch (error) {
+      setError(error.message || 'Error fetching logs');
     }
     setLoading(false);
   };
@@ -140,25 +149,42 @@ function ViewFarmerRecords() {
     
     // Create detailed entries data
     const detailHeaders = ['Date', 'Session', 'Section', 'Quantity (L)', 'Fat %', 'Rate', 'Total Cost'];
-    const detailData = sortedEntries.map(entry => {
-      const section = (() => {
-        if (!entry.date) return '';
-        const day = new Date(entry.date).getDate();
-        if (day >= 1 && day <= 10) return '1-10';
-        if (day >= 11 && day <= 20) return '11-20';
-        return '21-End';
-      })();
-      
-      return [
-        entry.date ? entry.date.slice(0, 10) : '',
-        entry.session,
-        section,
-        (entry.quantity_liters || entry.quantity || 0).toFixed(2),
-        entry.fat_percent || entry.fat || '',
-        entry.rate_per_liter || entry.rate || '',
-        (entry.total_cost || entry.total || 0).toFixed(2)
-      ];
-    });
+    const detailData = logs
+      .filter(log => {
+        const section = (() => {
+          if (!log.date) return '';
+          const day = new Date(log.date).getDate();
+          if (day >= 1 && day <= 10) return '1-10';
+          if (day >= 11 && day <= 20) return '11-20';
+          return '21-End';
+        })();
+        
+        return (
+          (filters.session === 'All' || log.session === filters.session) &&
+          (filters.section === 'All' || section === filters.section) &&
+          (!filters.month || (log.date && log.date.startsWith(filters.month)))
+        );
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map(entry => {
+        const section = (() => {
+          if (!entry.date) return '';
+          const day = new Date(entry.date).getDate();
+          if (day >= 1 && day <= 10) return '1-10';
+          if (day >= 11 && day <= 20) return '11-20';
+          return '21-End';
+        })();
+        
+        return [
+          entry.date ? entry.date.slice(0, 10) : '',
+          entry.session,
+          section,
+          (entry.quantity_liters || entry.quantity || 0).toFixed(2),
+          entry.fat_percent || entry.fat || '',
+          entry.rate_per_liter || entry.rate || '',
+          (entry.total_cost || entry.total || 0).toFixed(2)
+        ];
+      });
     
     // Combine summary and detailed data
     const csvContent = [
@@ -176,7 +202,7 @@ function ViewFarmerRecords() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `farmer_${farmerId}_logs_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `farmer_${filters.farmerId}_logs_${new Date().toISOString().slice(0, 10)}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -214,8 +240,8 @@ function ViewFarmerRecords() {
             <label htmlFor="farmer-id" style={{ marginBottom: 4, fontWeight: 500 }}>Farmer ID</label>
             <input 
               id="farmer-id" 
-              value={farmerId} 
-              onChange={(e) => setFarmerId(e.target.value)} 
+              value={filters.farmerId} 
+              onChange={(e) => setFilters({ ...filters, farmerId: e.target.value })} 
               placeholder="Enter Farmer ID" 
               style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 150, textAlign: 'center' }}
             />
@@ -228,9 +254,9 @@ function ViewFarmerRecords() {
             {loading ? 'Searching...' : 'Search'}
           </button>
         </div>
-        {getFarmerName(farmerId) && (
+        {getFarmerName(filters.farmerId) && (
           <div style={{ textAlign: 'center', marginTop: 12, fontWeight: 500, color: '#2563eb' }}>
-            Farmer: {getFarmerName(farmerId)}
+            Farmer: {getFarmerName(filters.farmerId)}
           </div>
         )}
       </div>
@@ -263,7 +289,7 @@ function ViewFarmerRecords() {
         <div style={{ padding: 16, textAlign: 'center' }}>Searching...</div>
       ) : error ? (
         <div style={{ color: 'red', padding: 16, textAlign: 'center' }}>{error}</div>
-      ) : logs.length === 0 && farmerId ? (
+      ) : logs.length === 0 && filters.farmerId ? (
         <div style={{ padding: 16, textAlign: 'center' }}>No records found for this farmer.</div>
       ) : filtered.length > 0 ? (
         <>
