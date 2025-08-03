@@ -9,8 +9,21 @@ const formatToTwoDecimals = (value) => {
   return parseFloat(value).toFixed(2);
 };
 
+// Helper function to get section from date
+const getSectionFromDate = (date) => {
+  if (!date) return '';
+  const day = new Date(date).getDate();
+  if (day >= 1 && day <= 10) return '1-10';
+  if (day >= 11 && day <= 20) return '11-20';
+  return '21-End';
+};
+
 function MilkLogging() {
-  const [date, setDate] = useState('');
+  // Set current date as default
+  const currentDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+  
+  const [date, setDate] = useState(currentDate);
   const [session, setSession] = useState('Morning');
   const [form, setForm] = useState({
     farmerId: '',
@@ -52,8 +65,11 @@ function MilkLogging() {
     setLogsError('');
     
     try {
-      // Only send date parameter, filter by session on frontend
-      const params = new URLSearchParams({ date: dateToFetch });
+      // Send both date and session parameters for better filtering
+      const params = new URLSearchParams({ 
+        date: dateToFetch,
+        session: session 
+      });
       const response = await apiCall(`/admin/filter-milk-logs?${params.toString()}`, {
         method: 'GET'
       });
@@ -73,7 +89,7 @@ function MilkLogging() {
     setLogsLoading(false);
   };
 
-  // Debounced fetch to prevent excessive API calls
+  // Fetch logs when date or session changes
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (date) {
@@ -81,10 +97,10 @@ function MilkLogging() {
       } else {
         setLogs([]);
       }
-    }, 300); // 300ms delay
+    }, 200); // Reduced delay for better responsiveness
 
     return () => clearTimeout(timeoutId);
-  }, [date]); // Remove session dependency to prevent excessive calls
+  }, [date, session]); // Include session dependency
 
   // Fetch farmers for name lookup
   useEffect(() => {
@@ -156,7 +172,7 @@ function MilkLogging() {
     setLoading(false);
   };
 
-  // Filter logs by session
+  // Filter logs by session (for display purposes)
   const filteredLogs = logs.filter(log => log.session === session);
 
   // Rename for entry total cost
@@ -167,6 +183,9 @@ function MilkLogging() {
   const totalQuantity = filteredLogs.reduce((sum, log) => sum + (log.quantity_liters || 0), 0);
   const avgFat = filteredLogs.length > 0 ? (filteredLogs.reduce((sum, log) => sum + (log.fat_percent || 0), 0) / filteredLogs.length) : 0;
   const summaryTotalCost = filteredLogs.reduce((sum, log) => sum + (log.total_cost || 0), 0);
+
+  // Get current section based on selected date
+  const currentSection = getSectionFromDate(date);
 
   const handleDeleteLog = async (logId, farmerId, quantity) => {
     const confirmMessage = `Are you sure you want to delete this milk log?\n\nFarmer ID: ${farmerId}\nQuantity: ${quantity}L\nSession: ${session}\nDate: ${date}\n\nThis action cannot be undone!`;
@@ -310,6 +329,31 @@ function MilkLogging() {
           >
             {sessionOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label style={{ 
+            fontWeight: '500',
+            fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+            color: '#2d3748'
+          }}>
+            Section:
+          </label>
+          <span style={{ 
+            padding: 'clamp(8px, 2vw, 12px)', 
+            borderRadius: '6px', 
+            border: '1px solid #ccc',
+            fontSize: 'clamp(14px, 3vw, 16px)',
+            minHeight: '44px',
+            background: '#f1f5f9',
+            display: 'flex',
+            alignItems: 'center',
+            minWidth: '80px',
+            justifyContent: 'center',
+            fontWeight: '600',
+            color: '#2563eb'
+          }}>
+            {currentSection}
+          </span>
         </div>
       </div>
 

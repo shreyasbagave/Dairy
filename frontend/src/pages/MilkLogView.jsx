@@ -5,8 +5,11 @@ const sectionOptions = ['All', '1-10', '11-20', '21-End'];
 const sessionOptions = ['All', 'Morning', 'Evening'];
 
 function MilkLogView() {
+  // Set current month as default
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+  
   const [filters, setFilters] = useState({
-    month: '',
+    month: currentMonth, // Set current month as default
     session: 'All',
     section: 'All',
     farmer: '',
@@ -18,6 +21,7 @@ function MilkLogView() {
 
   useEffect(() => {
     const fetchLogs = async () => {
+      setLoading(true);
       try {
         const response = await apiCall('/admin/milk-logs', {
           method: 'GET'
@@ -26,9 +30,14 @@ function MilkLogView() {
         if (response.ok) {
           const data = await response.json();
           setLogs(data);
+        } else {
+          setError('Failed to fetch logs');
         }
       } catch (error) {
         console.error('Error fetching logs:', error);
+        setError('Error fetching logs');
+      } finally {
+        setLoading(false);
       }
     };
 
