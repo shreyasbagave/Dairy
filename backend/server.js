@@ -35,6 +35,20 @@ app.use('/admin', adminRoutes);
 
 const farmerRoutes = require('./src/routes/farmer');
 app.use('/farmer', farmerRoutes);
+// ...existing code...
+
+// Log all requests for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
+// Catch-all 404 handler (must be after all routes)
+app.use((req, res) => {
+  res.status(404).json({ message: 'Endpoint not found' });
+});
+
+// ...existing code...
 
 // TODO: Add routes here
 
