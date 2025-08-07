@@ -10,8 +10,8 @@ function MilkLogView() {
   
   const [filters, setFilters] = useState({
     month: currentMonth, // Set current month as default
-    session: 'All',
-    section: 'All',
+    session: 'Morning', // Default session to Morning
+    section: '1-10', // Default section to 1-10
     farmer: '',
   });
   const [logs, setLogs] = useState([]);
@@ -104,9 +104,11 @@ function MilkLogView() {
     return groups;
   }, {});
 
-  // Calculate average fat for each group
+  // Calculate average fat for each group and format quantities to 2 decimal places
   Object.values(groupedLogs).forEach(group => {
     group.fat_percent = group.count > 0 ? (group.fat_percent / group.count).toFixed(2) : 0;
+    group.quantity_liters = parseFloat(group.quantity_liters).toFixed(2);
+    group.total_cost = parseFloat(group.total_cost).toFixed(2);
   });
 
   const filtered = Object.values(groupedLogs).filter(log => {
@@ -120,11 +122,18 @@ function MilkLogView() {
     );
   });
 
-  const totalMilk = filtered.reduce((sum, l) => sum + (l.quantity_liters || l.quantity || 0), 0);
-  const totalCost = filtered.reduce((sum, l) => sum + (l.total_cost || l.total || 0), 0);
+  // Sort filtered results by farmer_id in ascending order
+  const sortedFiltered = filtered.sort((a, b) => {
+    const farmerIdA = parseInt(a.farmer_id) || 0;
+    const farmerIdB = parseInt(b.farmer_id) || 0;
+    return farmerIdA - farmerIdB;
+  });
+
+  const totalMilk = sortedFiltered.reduce((sum, l) => sum + parseFloat(l.quantity_liters || l.quantity || 0), 0);
+  const totalCost = sortedFiltered.reduce((sum, l) => sum + parseFloat(l.total_cost || l.total || 0), 0);
 
   const exportCSV = () => {
-    if (filtered.length === 0) {
+    if (sortedFiltered.length === 0) {
       alert('No data to export');
       return;
     }
@@ -133,7 +142,7 @@ function MilkLogView() {
     const headers = ['Farmer ID', 'Name', 'Section', 'Session', 'Quantity (L)', 'Fat %', 'Total'];
     const csvContent = [
       headers.join(','),
-      ...filtered.map(log => {
+      ...sortedFiltered.map(log => {
         const farmerId = log.farmer_id || log.farmerId || '';
         const name = log.farmer_name || '';
         return [
@@ -204,10 +213,10 @@ function MilkLogView() {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {sortedFiltered.length === 0 ? (
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: 16 }}>No records found.</td></tr>
             ) : (
-              filtered.map((log, idx) => (
+              sortedFiltered.map((log, idx) => (
                 <tr key={`${log.farmer_id}-${log.section}-${log.session}`} style={{ background: idx % 2 === 0 ? '#f1f5f9' : '#fff', transition: 'background 0.2s' }}>
                   <td style={{ padding: 10, textAlign: 'center' }}>{log.farmer_id}</td>
                   <td style={{ padding: 10, textAlign: 'center' }}>{log.farmer_name}</td>
