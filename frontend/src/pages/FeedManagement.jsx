@@ -262,7 +262,8 @@ function FeedManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Farmer</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Quantity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Price (₹)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Unit Price (₹)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Total (₹)</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -289,6 +290,13 @@ function FeedManagement() {
                         <input type="number" min="0" step="0.01" value={editForm.price} onChange={(e) => handleEditChange('price', e.target.value)} className="w-full" />
                       ) : (
                         `₹${Number(p.price).toFixed(2)}`
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-sm align-middle whitespace-nowrap">
+                      {editId === p._id ? (
+                        `₹${(Number(editForm.quantity || 0) * Number(editForm.price || 0)).toFixed(2)}`
+                      ) : (
+                        `₹${(Number(p.quantity || 0) * Number(p.price || 0)).toFixed(2)}`
                       )}
                     </td>
                     <td className="px-6 py-3 text-sm align-middle text-right whitespace-nowrap">
