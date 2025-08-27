@@ -221,19 +221,22 @@ function FeedManagement() {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded disabled:opacity-50"  style={{ 
-              padding: 'clamp(4px, 1vw, 6px)', 
-              borderRadius: '4px', 
-              background: '#2563eb', 
-              color: '#fff', 
-              border: 'none', 
+            className="disabled:opacity-50 w-full md:w-auto max-w-sm"  style={{ 
+              background: 'transparent',
+              border: 'none',
               cursor: 'pointer',
-              fontSize: 'clamp(11px, 2vw, 12px)',
-              minHeight: '32px',
-              minWidth: '60px',
               margin: '0 auto'
             }}> 
-            {loading ? 'Saving...' : 'Save Purchase'}
+            <span style={{
+              background: '#2563eb',
+              color: '#fff',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              fontSize: 'clamp(11px, 2vw, 12px)',
+              display: 'inline-block'
+            }}>
+              {loading ? 'Saving...' : 'Save Purchase'}
+            </span>
           </button>
         </div>
       </div>
