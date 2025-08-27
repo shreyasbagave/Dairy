@@ -10,6 +10,15 @@ function FeedManagement() {
   const [editId, setEditId] = useState('');
   const [editForm, setEditForm] = useState({ date: '', quantity: '', price: '' });
 
+  const formatDateDDMMYYYY = (value) => {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return '';
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
   const [form, setForm] = useState({
     farmerId: '',
     date: new Date().toISOString().slice(0, 10),
@@ -265,7 +274,7 @@ function FeedManagement() {
                       {editId === p._id ? (
                         <input type="date" value={editForm.date} onChange={(e) => handleEditChange('date', e.target.value)} />
                       ) : (
-                        new Date(p.date).toLocaleDateString()
+                        formatDateDDMMYYYY(p.date)
                       )}
                     </td>
                     <td className="px-6 py-3 text-sm align-middle whitespace-nowrap">
