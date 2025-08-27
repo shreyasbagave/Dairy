@@ -47,4 +47,47 @@ exports.getFarmerFeedPurchases = async (req, res) => {
   }
 };
 
+// Update a feed purchase
+exports.updateFeedPurchase = async (req, res) => {
+  try {
+    const { purchaseId } = req.params;
+    const updates = {};
+    const { date, quantity, price } = req.body;
+
+    if (date) updates.date = new Date(date);
+    if (quantity != null) updates.quantity = Number(quantity);
+    if (price != null) updates.price = Number(price);
+
+    const updated = await FeedPurchase.findByIdAndUpdate(
+      purchaseId,
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Purchase not found' });
+    }
+
+    return res.json({ success: true, purchase: updated });
+  } catch (error) {
+    console.error('Error updating feed purchase:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Delete a feed purchase
+exports.deleteFeedPurchase = async (req, res) => {
+  try {
+    const { purchaseId } = req.params;
+    const deleted = await FeedPurchase.findByIdAndDelete(purchaseId);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Purchase not found' });
+    }
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting feed purchase:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 

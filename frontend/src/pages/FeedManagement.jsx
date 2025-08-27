@@ -7,6 +7,8 @@ function FeedManagement() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [editId, setEditId] = useState('');
+  const [editForm, setEditForm] = useState({ date: '', quantity: '', price: '' });
 
   const [form, setForm] = useState({
     farmerId: '',
@@ -76,11 +78,95 @@ function FeedManagement() {
         setSuccess('Feed purchase recorded');
         setForm({ farmerId: '', date: new Date().toISOString().slice(0, 10), quantity: '', price: '' });
         fetchPurchases();
+        try { alert('Purchase saved successfully'); } catch (_) {}
       } else {
         setError(data.message || 'Failed to save purchase');
+        try { alert(data.message || 'Failed to save purchase'); } catch (_) {}
       }
     } catch (e) {
       setError(e.message || 'Failed to save purchase');
+      try { alert(e.message || 'Failed to save purchase'); } catch (_) {}
+    }
+    setLoading(false);
+  };
+
+  const startEdit = (purchase) => {
+    setEditId(purchase._id);
+    setEditForm({
+      date: new Date(purchase.date).toISOString().slice(0, 10),
+      quantity: String(purchase.quantity),
+      price: String(purchase.price)
+    });
+    setError('');
+    setSuccess('');
+  };
+
+  const cancelEdit = () => {
+    setEditId('');
+    setEditForm({ date: '', quantity: '', price: '' });
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const saveEdit = async (purchaseId) => {
+    if (!editForm.date || !editForm.quantity || !editForm.price) {
+      setError('Please fill all fields');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const response = await apiCall(`/api/feed/purchases/${purchaseId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          date: editForm.date,
+          quantity: parseFloat(editForm.quantity),
+          price: parseFloat(editForm.price)
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSuccess('Feed purchase updated');
+        setEditId('');
+        setEditForm({ date: '', quantity: '', price: '' });
+        fetchPurchases();
+        try { alert('Purchase updated successfully'); } catch (_) {}
+      } else {
+        setError(data.message || 'Failed to update purchase');
+        try { alert(data.message || 'Failed to update purchase'); } catch (_) {}
+      }
+    } catch (e) {
+      setError(e.message || 'Failed to update purchase');
+      try { alert(e.message || 'Failed to update purchase'); } catch (_) {}
+    }
+    setLoading(false);
+  };
+
+  const deletePurchase = async (purchaseId) => {
+    if (!window.confirm('Delete this feed purchase?')) return;
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const response = await apiCall(`/api/feed/purchases/${purchaseId}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json().catch(() => ({ success: response.ok }));
+      if (response.ok && (data.success === undefined || data.success === true)) {
+        setSuccess('Feed purchase deleted');
+        if (editId === purchaseId) cancelEdit();
+        fetchPurchases();
+        try { alert('Purchase deleted successfully'); } catch (_) {}
+      } else {
+        setError((data && data.message) || 'Failed to delete purchase');
+        try { alert((data && data.message) || 'Failed to delete purchase'); } catch (_) {}
+      }
+    } catch (e) {
+      setError(e.message || 'Failed to delete purchase');
+      try { alert(e.message || 'Failed to delete purchase'); } catch (_) {}
     }
     setLoading(false);
   };
@@ -131,12 +217,22 @@ function FeedManagement() {
           </div>
         </div>
 
-        <div className="flex justify-end mt-4 md:mt-6">
+        <div className="w-full flex justify-center mt-4 md:mt-6">
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-md w-full disabled:opacity-50"
-          >
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded disabled:opacity-50"  style={{ 
+              padding: 'clamp(4px, 1vw, 6px)', 
+              borderRadius: '4px', 
+              background: '#2563eb', 
+              color: '#fff', 
+              border: 'none', 
+              cursor: 'pointer',
+              fontSize: 'clamp(11px, 2vw, 12px)',
+              minHeight: '32px',
+              minWidth: '60px',
+              margin: '0 auto'
+            }}> 
             {loading ? 'Saving...' : 'Save Purchase'}
           </button>
         </div>
@@ -147,23 +243,74 @@ function FeedManagement() {
         {loading ? (
           <div className="text-gray-600">Loading...</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-x-auto responsive-table">
+            <table className="min-w-full table-auto divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farmer</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price (₹)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Farmer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Quantity</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Price (₹)</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {purchases.map(p => (
                   <tr key={p._id}>
-                    <td className="px-4 py-2 text-sm">{getFarmerName(p.farmer_id)}</td>
-                    <td className="px-4 py-2 text-sm">{new Date(p.date).toLocaleDateString()}</td>
-                    <td className="px-4 py-2 text-sm">{p.quantity}</td>
-                    <td className="px-4 py-2 text-sm">₹{Number(p.price).toFixed(2)}</td>
+                    <td className="px-6 py-3 text-sm align-middle">{getFarmerName(p.farmer_id)}</td>
+                    <td className="px-6 py-3 text-sm align-middle whitespace-nowrap">
+                      {editId === p._id ? (
+                        <input type="date" value={editForm.date} onChange={(e) => handleEditChange('date', e.target.value)} />
+                      ) : (
+                        new Date(p.date).toLocaleDateString()
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-sm align-middle whitespace-nowrap">
+                      {editId === p._id ? (
+                        <input type="number" min="0" step="0.01" value={editForm.quantity} onChange={(e) => handleEditChange('quantity', e.target.value)} className="w-full" />
+                      ) : (
+                        p.quantity
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-sm align-middle whitespace-nowrap">
+                      {editId === p._id ? (
+                        <input type="number" min="0" step="0.01" value={editForm.price} onChange={(e) => handleEditChange('price', e.target.value)} className="w-full" />
+                      ) : (
+                        `₹${Number(p.price).toFixed(2)}`
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-sm align-middle text-right whitespace-nowrap">
+                      <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        {editId === p._id ? (
+                          <>
+                            <button onClick={() => saveEdit(p._id)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded disabled:opacity-50">Save</button>
+                            <button onClick={cancelEdit} disabled={loading} className="bg-gray-200 text-gray-800 px-3 py-1 rounded">Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => startEdit(p)} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded disabled:opacity-50"  style={{ 
+                          padding: 'clamp(4px, 1vw, 6px)', 
+                          borderRadius: '4px', 
+                          background: '#2563eb', 
+                          color: '#fff', 
+                          border: 'none', 
+                          cursor: 'pointer',
+                          fontSize: 'clamp(11px, 2vw, 12px)',
+                          minHeight: '32px',
+                          minWidth: '60px'
+                        }}>Edit</button>
+                            <button onClick={() => deletePurchase(p._id)} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded disabled:opacity-50" style={{ 
+            textAlign: 'center', 
+            padding: 'clamp(12px, 3vw, 16px)', 
+            color: '#fff', 
+            cursor: 'pointer',
+            background: '#dc2626',
+            fontSize: 'clamp(14px, 3vw, 16px)'
+          }}>Delete</button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
