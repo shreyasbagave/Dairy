@@ -108,6 +108,9 @@ function DashboardHome() {
         case 'add-milk':
           navigate('/admin/dashboard/milk-logging');
           break;
+        case 'feed':
+          navigate('/admin/dashboard/feed');
+          break;
         case 'manage-farmers':
           navigate('/admin/dashboard/farmers');
           break;
@@ -336,6 +339,23 @@ function DashboardHome() {
         }}>
           {userInfo?.role === 'admin' ? (
             <>
+              <button 
+                onClick={() => handleQuickAction('feed')}
+                style={{
+                  padding: 'clamp(12px, 3vw, 16px)',
+                  background: '#0ea5e9',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  minHeight: '48px'
+                }}
+              >
+                🌾 Feed
+              </button>
               <button 
                 onClick={() => handleQuickAction('add-milk')}
                 style={{
