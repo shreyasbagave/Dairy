@@ -42,6 +42,28 @@ export const apiCall = async (endpoint, options = {}) => {
     
     // Check if response is ok before trying to parse JSON
     if (!response.ok) {
+      // Fallback: If 404 and endpoint starts with /api, retry without /api prefix
+      if (response.status === 404 && /^\/api\//.test(endpoint)) {
+        const fallbackEndpoint = endpoint.replace(/^\/api/, '');
+        const fallbackUrl = `${API_BASE_URL}${fallbackEndpoint}`;
+        console.warn(`Received 404. Retrying without /api prefix: ${fallbackUrl}`);
+        const fallbackResponse = await fetch(fallbackUrl, finalOptions);
+
+        console.log(`Fallback response status: ${fallbackResponse.status} ${fallbackResponse.statusText}`);
+        if (!fallbackResponse.ok) {
+          let fbErrorMessage = `HTTP ${fallbackResponse.status}: ${fallbackResponse.statusText}`;
+          try {
+            const fbErrorData = await fallbackResponse.json();
+            fbErrorMessage = fbErrorData.message || fbErrorMessage;
+          } catch (jsonError) {
+            console.warn('Could not parse fallback error response as JSON:', jsonError);
+          }
+          throw new Error(fbErrorMessage);
+        }
+        // Successful fallback
+        return fallbackResponse;
+      }
+
       // Try to get error message from response
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       try {

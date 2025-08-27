@@ -36,6 +36,28 @@ async function testEndpoints() {
     console.log('❌ Farmer milk logs endpoint failed:', error.message);
   }
 
+  // Test 4: Production feed endpoint under /api/feed (should be 401 or 403, but not 404)
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/feed/purchases`);
+    console.log('\n✅ Feed (api) purchases endpoint:', response.status, response.statusText);
+    if (response.status === 404) {
+      console.log('   Warning: /api/feed/purchases not found on server');
+    }
+  } catch (error) {
+    console.log('❌ Feed (api) purchases endpoint failed:', error.message);
+  }
+
+  // Test 5: Production feed endpoint under /feed (alternate mount)
+  try {
+    const response = await fetch(`${API_BASE_URL}/feed/purchases`);
+    console.log('\n✅ Feed (no api) purchases endpoint:', response.status, response.statusText);
+    if (response.status === 404) {
+      console.log('   /feed/purchases also not found');
+    }
+  } catch (error) {
+    console.log('❌ Feed (no api) purchases endpoint failed:', error.message);
+  }
+
   console.log('\n🎯 Endpoint test completed!');
   console.log('If you see 401 errors, that means the endpoints are working correctly');
   console.log('and just require authentication tokens.');

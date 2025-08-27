@@ -67,7 +67,9 @@ function AdminDashboard() {
     { path: '/admin/dashboard/farmers', label: 'Farmers', icon: '👥' },
     { path: '/admin/dashboard/milk-logging', label: 'Milk Logging', icon: '🥛' },
     { path: '/admin/dashboard/milk-logs', label: 'Milk Logs', icon: '📊' },
-    { path: '/admin/dashboard/farmer-records', label: 'Records', icon: '📋' }
+    { path: '/admin/dashboard/farmer-records', label: 'Records', icon: '📋' },
+    { path: '/admin/dashboard/feed', label: 'Feed', icon: '🌾' },
+    
   ];
 
   const handleMenuClick = (path) => {

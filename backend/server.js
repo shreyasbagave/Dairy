@@ -46,6 +46,11 @@ app.use('/admin', adminRoutes);
 const farmerRoutes = require('./src/routes/farmer');
 app.use('/farmer', farmerRoutes);
 
+const feedRoutes = require('./src/routes/feed');
+app.use('/api/feed', feedRoutes);
+// Alternate mount without /api for clients that retry without the prefix
+app.use('/feed', feedRoutes);
+
 // Catch-all 404 handler (must be after all routes)
 app.use((req, res) => {
   console.log(`404 - ${req.method} ${req.url} not found`);

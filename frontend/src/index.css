@@ -341,6 +341,29 @@ button, input, select, textarea {
   touch-action: manipulation;
 }
 
+/* Unified form control styling across the app */
+input, select, textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0; /* slate-200 */
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-color: #fff;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #2563eb; /* blue-600 */
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+input[disabled], select[disabled], textarea[disabled] {
+  background-color: #f8fafc; /* slate-50 */
+  color: #94a3b8; /* slate-400 */
+  cursor: not-allowed;
+}
+
 /* Prevent horizontal scroll */
 html, body {
   overflow-x: hidden;
