@@ -12,6 +12,7 @@ import DashboardHome from './components/DashboardHome';
 import ResetPassword from './pages/ResetPassword';
 import ProfilePage from './pages/ProfilePage';
 import FeedManagement from './pages/FeedManagement';
+import Billing from './pages/Billing';
 
 function App() {
   useEffect(() => {
@@ -41,6 +42,7 @@ function App() {
           <Route path="milk-logs" element={<MilkLogView />} />
           <Route path="farmer-records" element={<ViewFarmerRecords />} />
           <Route path="feed" element={<FeedManagement />} />
+          <Route path="billing" element={<Billing />} />
         </Route>
         <Route path="/admin/add-milk-entry" element={<AddMilkEntryForm />} />
         <Route path="/farmer/dashboard" element={<FarmerDashboard />} />

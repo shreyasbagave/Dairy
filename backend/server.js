@@ -51,6 +51,10 @@ app.use('/api/feed', feedRoutes);
 // Alternate mount without /api for clients that retry without the prefix
 app.use('/feed', feedRoutes);
 
+const billingRoutes = require('./src/routes/billing');
+app.use('/api/billing', billingRoutes);
+app.use('/billing', billingRoutes);
+
 // Catch-all 404 handler (must be after all routes)
 app.use((req, res) => {
   console.log(`404 - ${req.method} ${req.url} not found`);
