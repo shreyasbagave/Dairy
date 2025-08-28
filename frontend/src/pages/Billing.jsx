@@ -5,6 +5,15 @@ function toISODate(date) {
   return new Date(date).toISOString().slice(0, 10);
 }
 
+function formatDDMMYYYY(value) {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 function computeSectionDates(monthYYYYMM, section) {
   if (!monthYYYYMM) return { start: '', end: '' };
   const startOfMonth = new Date(`${monthYYYYMM}-01`);
@@ -157,16 +166,17 @@ export default function Billing() {
             </select>
           </div>
           <div style={{ alignSelf: 'flex-end', fontSize: 12, color: '#555' }}>
-            {periodStart && periodEnd ? `Period: ${periodStart} → ${periodEnd}` : ''}
+            {periodStart && periodEnd ? `Period: ${formatDDMMYYYY(periodStart)} → ${formatDDMMYYYY(periodEnd)}` : ''}
           </div>
         </div>
         <button onClick={handlePreview} disabled={!farmerId || loading}>Preview</button>
         {preview && (
           <div style={{ border: '1px solid #ddd', padding: 12 }}>
             <h3>Preview</h3>
+            <div>Period: {formatDDMMYYYY(periodStart)} → {formatDDMMYYYY(periodEnd)}</div>
             <div>Milk Liters: {preview.milk?.milk_total_liters ?? 0}</div>
-            <div>Milk Amount: {preview.milk?.milk_total_amount ?? 0}</div>
-            <div>Feed Balance: {preview.feedBalance?.remaining ?? 0}</div>
+            <div>Milk Amount: {Number(preview.milk?.milk_total_amount ?? 0).toFixed(2)}</div>
+            <div>Feed Balance: {Number(preview.feedBalance?.remaining ?? 0).toFixed(2)}</div>
           </div>
         )}
         <div style={{ border: '1px solid #ddd', padding: 12 }}>
