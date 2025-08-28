@@ -113,4 +113,16 @@ exports.markPaid = async (req, res) => {
   }
 };
 
+exports.deleteBill = async (req, res) => {
+  try {
+    const { billId } = req.params;
+    const deleted = await Bill.findOneAndDelete({ bill_id: billId });
+    if (!deleted) return res.status(404).json({ success: false, message: 'Bill not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('deleteBill error', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 

@@ -12,6 +12,7 @@ router.post('/generate', billingController.generateBill);
 router.get('/balance/:farmerId', billingController.getBalance);
 router.get('/history/:farmerId', billingController.getHistory);
 router.post('/mark-paid/:billId', billingController.markPaid);
+router.delete('/:billId', billingController.deleteBill);
 
 module.exports = router;
 

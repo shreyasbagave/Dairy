@@ -117,6 +117,27 @@ export default function Billing() {
     }
   }
 
+  async function handleDelete(billId) {
+    if (!billId) return;
+    if (!window.confirm('Delete this bill? This will not change past feed balance deductions already accounted across remaining calculations, but removes this snapshot.')) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await apiCall(`/api/billing/${encodeURIComponent(billId)}`, { method: 'DELETE' });
+      await res.json().catch(() => ({}));
+      // refresh
+      const bRes = await apiCall(`/api/billing/balance/${encodeURIComponent(farmerId)}`);
+      setBalance(await bRes.json());
+      const hRes = await apiCall(`/api/billing/history/${encodeURIComponent(farmerId)}`);
+      const hData = await hRes.json();
+      setHistory(hData.bills || []);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div style={{ padding: 16 }}>
       <h2>Billing</h2>
@@ -175,6 +196,7 @@ export default function Billing() {
                   <th>Deducted</th>
                   <th>Remaining Feed</th>
                   <th>Net Payable</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -182,10 +204,13 @@ export default function Billing() {
                   <tr key={b.bill_id}>
                     <td>{new Date(b.createdAt).toLocaleDateString()}</td>
                     <td>{new Date(b.period_start).toLocaleDateString()} - {new Date(b.period_end).toLocaleDateString()}</td>
-                    <td>{b.milk_total_amount}</td>
-                    <td>{b.feed_deducted_this_cycle}</td>
-                    <td>{b.remaining_feed_balance_after}</td>
-                    <td>{b.net_payable}</td>
+                    <td>{Number(b.milk_total_amount).toFixed(2)}</td>
+                    <td>{Number(b.feed_deducted_this_cycle).toFixed(2)}</td>
+                    <td>{Number(b.remaining_feed_balance_after).toFixed(2)}</td>
+                    <td>{Number(b.net_payable).toFixed(2)}</td>
+                    <td>
+                      <button onClick={() => handleDelete(b.bill_id)} disabled={loading}>Delete</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
