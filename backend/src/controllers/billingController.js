@@ -2,6 +2,42 @@ const { v4: uuidv4 } = require('uuid');
 const Bill = require('../models/Bill');
 const MilkLog = require('../models/MilkLog');
 const FeedPurchase = require('../models/FeedPurchase');
+const Farmer = require('../models/Farmer');
+
+// Test endpoint to check if billing system is working
+exports.testBilling = async (req, res) => {
+  try {
+    console.log('Billing system test endpoint called');
+    res.json({ 
+      success: true, 
+      message: 'Billing system is working',
+      timestamp: new Date().toISOString(),
+      models: {
+        Bill: !!Bill,
+        MilkLog: !!MilkLog,
+        FeedPurchase: !!FeedPurchase,
+        Farmer: !!Farmer
+      }
+    });
+  } catch (err) {
+    console.error('testBilling error', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Helper to validate farmer exists
+async function validateFarmer(farmerId) {
+  try {
+    const farmer = await Farmer.findOne({ farmer_id: farmerId });
+    if (!farmer) {
+      throw new Error(`Farmer with ID ${farmerId} not found`);
+    }
+    return farmer;
+  } catch (error) {
+    console.error('Farmer validation error:', error);
+    throw error;
+  }
+}
 
 // Helper to compute milk totals in a period
 async function computeMilkTotals(adminId, farmerId, startDate, endDate) {

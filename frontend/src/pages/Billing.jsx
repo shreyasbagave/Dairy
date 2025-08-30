@@ -54,10 +54,15 @@ export default function Billing() {
     (async () => {
       try {
         const res = await apiCall(`/api/billing/balance/${encodeURIComponent(farmerId)}`);
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error('Balance fetch error:', errorData.message || `HTTP ${res.status}`);
+          return;
+        }
         const data = await res.json();
         setBalance(data);
       } catch (e) {
-        console.error(e);
+        console.error('Balance fetch error:', e);
       }
     })();
   }, [farmerId]);
@@ -67,10 +72,15 @@ export default function Billing() {
     (async () => {
       try {
         const res = await apiCall(`/api/billing/history/${encodeURIComponent(farmerId)}`);
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error('History fetch error:', errorData.message || `HTTP ${res.status}`);
+          return;
+        }
         const data = await res.json();
         setHistory(data.bills || []);
       } catch (e) {
-        console.error(e);
+        console.error('History fetch error:', e);
       }
     })();
   }, [farmerId]);
@@ -118,6 +128,11 @@ export default function Billing() {
           actual_paid_amount: Number(actualPaidAmount),
         }),
       });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       const data = await res.json();
       
       // refresh
@@ -131,7 +146,8 @@ export default function Billing() {
       setActualPaidAmount('');
       alert('Bill generated successfully!');
     } catch (e) {
-      setError(e.message);
+      console.error('Generate bill error:', e);
+      setError(e.message || 'Failed to generate bill. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -152,6 +168,12 @@ export default function Billing() {
           actual_paid_amount: Number(paymentAmount)
         }),
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       const data = await res.json();
       
       // Refresh history
@@ -165,7 +187,8 @@ export default function Billing() {
       
       alert(`Payment updated! Adjustment: ${data.adjustment >= 0 ? '+' : ''}₹${data.adjustment.toFixed(2)}`);
     } catch (e) {
-      setError(e.message);
+      console.error('Update payment error:', e);
+      setError(e.message || 'Failed to update payment. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -178,6 +201,12 @@ export default function Billing() {
     setError('');
     try {
       const res = await apiCall(`/api/billing/${encodeURIComponent(billId)}`, { method: 'DELETE' });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       await res.json().catch(() => ({}));
       // refresh
       const bRes = await apiCall(`/api/billing/balance/${encodeURIComponent(farmerId)}`);
@@ -186,7 +215,8 @@ export default function Billing() {
       const hData = await hRes.json();
       setHistory(hData.bills || []);
     } catch (e) {
-      setError(e.message);
+      console.error('Delete bill error:', e);
+      setError(e.message || 'Failed to delete bill. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -215,6 +245,11 @@ export default function Billing() {
             onChange={e => setFarmerId(e.target.value)}
             style={{ width: '200px', padding: '8px', fontSize: '14px' }}
           />
+          {farmerId && (
+            <div style={{ marginTop: 8, fontSize: '14px', color: '#666' }}>
+              {loading ? 'Loading farmer data...' : 'Enter a valid Farmer ID to proceed'}
+            </div>
+          )}
         </div>
 
         {/* Period Selection */}
@@ -247,6 +282,35 @@ export default function Billing() {
             </div>
           </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div style={{ 
+            border: '2px solid #dc3545', 
+            padding: 16, 
+            borderRadius: 8, 
+            backgroundColor: '#f8d7da', 
+            color: '#721c24',
+            textAlign: 'center'
+          }}>
+            <strong>Error:</strong> {error}
+            <button 
+              onClick={() => setError('')}
+              style={{ 
+                marginLeft: 12, 
+                padding: '4px 8px', 
+                backgroundColor: '#dc3545', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Preview Button */}
         <div style={{ textAlign: 'center' }}>
