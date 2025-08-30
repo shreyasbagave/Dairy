@@ -25,6 +25,13 @@ async function computeFeedBalance(farmerId) {
   return { totalPurchased, totalDeducted, remaining: Math.max(remaining, 0) };
 }
 
+// Helper to get the latest carry-forward balance for a farmer
+async function getLatestCarryForwardBalance(farmerId) {
+  const latestBill = await Bill.findOne({ farmer_id: farmerId })
+    .sort({ createdAt: -1 });
+  return latestBill?.new_carry_forward_balance || 0;
+}
+
 exports.previewBill = async (req, res) => {
   try {
     const admin_id = req.user.userId;
@@ -32,8 +39,19 @@ exports.previewBill = async (req, res) => {
     const start = new Date(period_start);
     const end = new Date(period_end);
     const milk = await computeMilkTotals(admin_id, farmer_id, start, end);
-    const feedBalance = await computeFeedBalance(farmer_id);
-    res.json({ success: true, milk, feedBalance });
+    const feedBalance = await computeFeedBalance(farmerId);
+    const previousCarryForward = await getLatestCarryForwardBalance(farmerId);
+    
+    // Calculate net payable including carry-forward
+    const net_payable = milk.milk_total_amount - feedBalance.remaining + previousCarryForward;
+    
+    res.json({ 
+      success: true, 
+      milk, 
+      feedBalance,
+      previousCarryForward,
+      net_payable
+    });
   } catch (err) {
     console.error('previewBill error', err);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -43,16 +61,23 @@ exports.previewBill = async (req, res) => {
 exports.generateBill = async (req, res) => {
   try {
     const admin_id = req.user.userId;
-    const { farmer_id, period_start, period_end, feed_deduction, status } = req.body;
+    const { farmer_id, period_start, period_end, feed_deduction, actual_paid_amount, status } = req.body;
     const start = new Date(period_start);
     const end = new Date(period_end);
 
     const milk = await computeMilkTotals(admin_id, farmer_id, start, end);
-    const feedBalanceBefore = await computeFeedBalance(farmer_id);
+    const feedBalanceBefore = await computeFeedBalance(farmerId);
     const deduction = Math.max(0, Math.min(Number(feed_deduction || 0), feedBalanceBefore.remaining));
+    const previousCarryForward = await getLatestCarryForwardBalance(farmerId);
 
-    const net_payable = milk.milk_total_amount - deduction;
+    // Calculate net payable including carry-forward
+    const net_payable = milk.milk_total_amount - deduction + previousCarryForward;
     const remaining_after = feedBalanceBefore.remaining - deduction;
+
+    // Calculate adjustment and new carry-forward balance
+    const actualPaid = Number(actual_paid_amount || 0);
+    const adjustment = actualPaid - net_payable;
+    const newCarryForwardBalance = previousCarryForward + adjustment;
 
     const bill = new Bill({
       bill_id: uuidv4(),
@@ -65,12 +90,56 @@ exports.generateBill = async (req, res) => {
       feed_deducted_this_cycle: deduction,
       remaining_feed_balance_after: remaining_after,
       net_payable,
-      status: status === 'paid' ? 'paid' : 'pending',
+      status: 'paid', // Bill is automatically marked as paid since we have the payment amount
+      previous_carry_forward: previousCarryForward,
+      actual_paid_amount: actualPaid,
+      adjustment: adjustment,
+      new_carry_forward_balance: newCarryForwardBalance,
     });
     await bill.save();
-    res.status(201).json({ success: true, bill });
+    res.status(201).json({ 
+      success: true, 
+      bill,
+      adjustment,
+      newCarryForwardBalance
+    });
   } catch (err) {
     console.error('generateBill error', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// New function to update payment amount and calculate adjustments
+exports.updatePayment = async (req, res) => {
+  try {
+    const { billId } = req.params;
+    const { actual_paid_amount } = req.body;
+    
+    const bill = await Bill.findOne({ bill_id: billId });
+    if (!bill) {
+      return res.status(404).json({ success: false, message: 'Bill not found' });
+    }
+
+    const actualPaid = Number(actual_paid_amount || 0);
+    const adjustment = actualPaid - bill.net_payable;
+    const newCarryForwardBalance = bill.previous_carry_forward + adjustment;
+
+    // Update the bill with payment details
+    bill.actual_paid_amount = actualPaid;
+    bill.adjustment = adjustment;
+    bill.new_carry_forward_balance = newCarryForwardBalance;
+    bill.status = 'paid';
+    
+    await bill.save();
+
+    res.json({ 
+      success: true, 
+      bill,
+      adjustment,
+      newCarryForwardBalance
+    });
+  } catch (err) {
+    console.error('updatePayment error', err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
