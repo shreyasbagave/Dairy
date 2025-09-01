@@ -115,6 +115,17 @@ export default function Billing() {
       return;
     }
 
+    // Enforce round-off on client: if net payable has paise, force whole rupee payment
+    const hasPaise = Math.abs(netPayable - Math.round(netPayable)) > 1e-9;
+    const actualPaid = Number(actualPaidAmount);
+    const isWholeRupee = Math.abs(actualPaid - Math.round(actualPaid)) <= 1e-9;
+    if (hasPaise && !isWholeRupee) {
+      const floorSuggestion = Math.floor(netPayable);
+      const ceilSuggestion = Math.ceil(netPayable);
+      alert(`Round-off required: enter a whole rupee amount (e.g., ₹${floorSuggestion} or ₹${ceilSuggestion}).`);
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
@@ -157,6 +168,19 @@ export default function Billing() {
     if (!paymentAmount || isNaN(paymentAmount)) {
       alert('Please enter a valid payment amount');
       return;
+    }
+    // Enforce round-off on client for updates
+    const bill = history.find(b => b.bill_id === billId);
+    if (bill) {
+      const hasPaise = Math.abs(Number(bill.net_payable) - Math.round(Number(bill.net_payable))) > 1e-9;
+      const actualPaid = Number(paymentAmount);
+      const isWholeRupee = Math.abs(actualPaid - Math.round(actualPaid)) <= 1e-9;
+      if (hasPaise && !isWholeRupee) {
+        const floorSuggestion = Math.floor(Number(bill.net_payable));
+        const ceilSuggestion = Math.ceil(Number(bill.net_payable));
+        alert(`Round-off required: enter a whole rupee amount (e.g., ₹${floorSuggestion} or ₹${ceilSuggestion}).`);
+        return;
+      }
     }
     
     setLoading(true);
@@ -389,13 +413,22 @@ export default function Billing() {
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>Actual Paid Amount (₹)</label>
                 <input
                   type="number"
-                  step={0.01}
+                  step={Math.abs(netPayable - Math.round(netPayable)) > 1e-9 ? 1 : 0.01}
                   value={actualPaidAmount}
                   onChange={e => setActualPaidAmount(e.target.value)}
                   placeholder="Enter actual paid amount"
                   style={{ width: '100%', padding: '10px', fontSize: '14px', border: '1px solid #ddd', borderRadius: 4 }}
                 />
-                <small style={{ color: '#666' }}>Net Payable: ₹{netPayable.toFixed(2)}</small>
+                <div style={{ color: '#666' }}>
+                  <small>Net Payable: ₹{netPayable.toFixed(2)}</small>
+                  {Math.abs(netPayable - Math.round(netPayable)) > 1e-9 && (
+                    <div style={{ color: '#d35400', marginTop: 4 }}>
+                      <small>
+                        Round-off required: pay a whole rupee (e.g., ₹{Math.floor(netPayable)} or ₹{Math.ceil(netPayable)}).
+                      </small>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div style={{ marginTop: 16, textAlign: 'center' }}>

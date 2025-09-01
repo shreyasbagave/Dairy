@@ -75,11 +75,11 @@ exports.previewBill = async (req, res) => {
     const start = new Date(period_start);
     const end = new Date(period_end);
     const milk = await computeMilkTotals(admin_id, farmer_id, start, end);
-    const feedBalance = await computeFeedBalance(farmerId);
-    const previousCarryForward = await getLatestCarryForwardBalance(farmerId);
+    const feedBalance = await computeFeedBalance(farmer_id);
+    const previousCarryForward = await getLatestCarryForwardBalance(farmer_id);
     
     // Calculate net payable including carry-forward
-    const net_payable = milk.milk_total_amount - feedBalance.remaining + previousCarryForward;
+    const net_payable = milk.milk_total_amount + previousCarryForward;
     
     res.json({ 
       success: true, 
@@ -102,9 +102,9 @@ exports.generateBill = async (req, res) => {
     const end = new Date(period_end);
 
     const milk = await computeMilkTotals(admin_id, farmer_id, start, end);
-    const feedBalanceBefore = await computeFeedBalance(farmerId);
+    const feedBalanceBefore = await computeFeedBalance(farmer_id);
     const deduction = Math.max(0, Math.min(Number(feed_deduction || 0), feedBalanceBefore.remaining));
-    const previousCarryForward = await getLatestCarryForwardBalance(farmerId);
+    const previousCarryForward = await getLatestCarryForwardBalance(farmer_id);
 
     // Calculate net payable including carry-forward
     const net_payable = milk.milk_total_amount - deduction + previousCarryForward;
@@ -112,6 +112,18 @@ exports.generateBill = async (req, res) => {
 
     // Calculate adjustment and new carry-forward balance
     const actualPaid = Number(actual_paid_amount || 0);
+
+    // Enforce round-off rule: if bill has decimals, payment must be a whole rupee amount
+    const hasPaise = Math.abs(net_payable - Math.round(net_payable)) > 1e-9;
+    const isWholeRupee = Math.abs(actualPaid - Math.round(actualPaid)) <= 1e-9;
+    if (hasPaise && !isWholeRupee) {
+      const floorSuggestion = Math.floor(net_payable);
+      const ceilSuggestion = Math.ceil(net_payable);
+      return res.status(400).json({
+        success: false,
+        message: `Round-off required: enter a whole rupee amount (e.g., ₹${floorSuggestion} or ₹${ceilSuggestion}).`,
+      });
+    }
     const adjustment = actualPaid - net_payable;
     const newCarryForwardBalance = previousCarryForward + adjustment;
 
@@ -157,6 +169,18 @@ exports.updatePayment = async (req, res) => {
     }
 
     const actualPaid = Number(actual_paid_amount || 0);
+
+    // Enforce round-off rule on update as well
+    const hasPaise = Math.abs(bill.net_payable - Math.round(bill.net_payable)) > 1e-9;
+    const isWholeRupee = Math.abs(actualPaid - Math.round(actualPaid)) <= 1e-9;
+    if (hasPaise && !isWholeRupee) {
+      const floorSuggestion = Math.floor(bill.net_payable);
+      const ceilSuggestion = Math.ceil(bill.net_payable);
+      return res.status(400).json({
+        success: false,
+        message: `Round-off required: enter a whole rupee amount (e.g., ₹${floorSuggestion} or ₹${ceilSuggestion}).`,
+      });
+    }
     const adjustment = actualPaid - bill.net_payable;
     const newCarryForwardBalance = bill.previous_carry_forward + adjustment;
 
