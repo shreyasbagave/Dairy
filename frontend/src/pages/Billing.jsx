@@ -71,6 +71,7 @@ export default function Billing() {
     if (!farmerId) return;
     (async () => {
       try {
+        // Fetch all billing history for the selected farmer (no period filtering)
         const res = await apiCall(`/api/billing/history/${encodeURIComponent(farmerId)}`);
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
@@ -83,7 +84,7 @@ export default function Billing() {
         console.error('History fetch error:', e);
       }
     })();
-  }, [farmerId]);
+  }, [farmerId]); // Fetch history when farmer changes
 
   async function handlePreview() {
     setLoading(true);
@@ -454,161 +455,296 @@ export default function Billing() {
 
         {/* Billing History */}
         <div style={{ border: '1px solid #ddd', padding: 16, borderRadius: 8 }}>
-          <h3 style={{ marginTop: 0, marginBottom: 16 }}>📊 Billing History</h3>
-          {history.length === 0 ? (
+          <h3 style={{ marginTop: 0, marginBottom: 16 }}>📊 Complete Billing History - {farmerId || 'Select Farmer'}</h3>
+          {!farmerId ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              Please select a farmer to view their complete billing history
+            </div>
+          ) : history.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
               No billing history found for this farmer
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f8f9fa' }}>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'left', fontWeight: 'bold' }}>Bill Date</th>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'left', fontWeight: 'bold' }}>Period</th>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Milk Total</th>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Feed Deducted</th>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Prev Carry-Forward</th>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Net Payable</th>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Actual Paid</th>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Adjustment</th>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>New Carry-Forward</th>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center', fontWeight: 'bold' }}>Status</th>
-                    <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center', fontWeight: 'bold' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <>
+              {/* Desktop Table View */}
+              <div className="desktop-table" style={{ display: 'none' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f8f9fa' }}>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'left', fontWeight: 'bold' }}>Bill Date</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'left', fontWeight: 'bold' }}>Period</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Milk Total</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Feed Deducted</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Prev Carry-Forward</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Net Payable</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Actual Paid</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Adjustment</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>New Carry-Forward</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center', fontWeight: 'bold' }}>Status</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center', fontWeight: 'bold' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.map(b => (
+                        <tr key={b.bill_id} style={{ backgroundColor: b.status === 'paid' ? '#f8fff9' : '#fff8e1' }}>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6' }}>
+                            {formatDDMMYYYY(b.createdAt)}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6' }}>
+                            {formatDDMMYYYY(b.period_start)} - {formatDDMMYYYY(b.period_end)}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>
+                            ₹{Number(b.milk_total_amount).toFixed(2)}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right' }}>
+                            ₹{Number(b.feed_deducted_this_cycle).toFixed(2)}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right' }}>
+                            ₹{Number(b.previous_carry_forward || 0).toFixed(2)}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>
+                            ₹{Number(b.net_payable).toFixed(2)}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right' }}>
+                            {editingPayment === b.bill_id ? (
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={paymentAmount}
+                                onChange={e => setPaymentAmount(e.target.value)}
+                                style={{ width: '80px', padding: '4px', fontSize: '12px' }}
+                              />
+                            ) : (
+                              b.actual_paid_amount > 0 ? `₹${Number(b.actual_paid_amount).toFixed(2)}` : 'Not paid'
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right' }}>
+                            {b.adjustment !== undefined ? (
+                              <span style={{ 
+                                color: b.adjustment >= 0 ? '#28a745' : '#dc3545',
+                                fontWeight: 'bold'
+                              }}>
+                                {b.adjustment >= 0 ? '+' : ''}₹{Number(b.adjustment).toFixed(2)}
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>
+                            {b.new_carry_forward_balance !== undefined ? 
+                              `₹${Number(b.new_carry_forward_balance).toFixed(2)}` : '-'}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center' }}>
+                            <span style={{ 
+                              color: b.status === 'paid' ? '#28a745' : '#ff9800',
+                              fontWeight: 'bold',
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              backgroundColor: b.status === 'paid' ? '#d4edda' : '#fff3cd'
+                            }}>
+                              {b.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center' }}>
+                            {editingPayment === b.bill_id ? (
+                              <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                                <button 
+                                  onClick={() => handleUpdatePayment(b.bill_id)}
+                                  disabled={loading}
+                                  style={{ 
+                                    fontSize: '11px', 
+                                    padding: '4px 8px', 
+                                    backgroundColor: '#28a745',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: 4,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Save
+                                </button>
+                                <button 
+                                  onClick={cancelEditingPayment}
+                                  style={{ 
+                                    fontSize: '11px', 
+                                    padding: '4px 8px', 
+                                    backgroundColor: '#6c757d',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: 4,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                                <button 
+                                  onClick={() => startEditingPayment(b)}
+                                  disabled={loading}
+                                  style={{ 
+                                    fontSize: '11px', 
+                                    padding: '4px 8px', 
+                                    backgroundColor: '#007bff',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: 4,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {b.status === 'paid' ? 'Edit' : 'Enter Payment'}
+                                </button>
+                                <button 
+                                  onClick={() => handleDelete(b.bill_id)} 
+                                  disabled={loading}
+                                  style={{ 
+                                    fontSize: '11px', 
+                                    padding: '4px 8px', 
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: 4,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="mobile-cards">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {history.map(b => (
-                    <tr key={b.bill_id} style={{ backgroundColor: b.status === 'paid' ? '#f8fff9' : '#fff8e1' }}>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6' }}>
-                        {formatDDMMYYYY(b.createdAt)}
-                      </td>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6' }}>
-                        {formatDDMMYYYY(b.period_start)} - {formatDDMMYYYY(b.period_end)}
-                      </td>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>
-                        ₹{Number(b.milk_total_amount).toFixed(2)}
-                      </td>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right' }}>
-                        ₹{Number(b.feed_deducted_this_cycle).toFixed(2)}
-                      </td>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right' }}>
-                        ₹{Number(b.previous_carry_forward || 0).toFixed(2)}
-                      </td>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>
-                        ₹{Number(b.net_payable).toFixed(2)}
-                      </td>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right' }}>
-                        {editingPayment === b.bill_id ? (
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={paymentAmount}
-                            onChange={e => setPaymentAmount(e.target.value)}
-                            style={{ width: '80px', padding: '4px', fontSize: '12px' }}
-                          />
-                        ) : (
-                          b.actual_paid_amount > 0 ? `₹${Number(b.actual_paid_amount).toFixed(2)}` : 'Not paid'
-                        )}
-                      </td>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right' }}>
-                        {b.adjustment !== undefined ? (
-                          <span style={{ 
-                            color: b.adjustment >= 0 ? '#28a745' : '#dc3545',
-                            fontWeight: 'bold'
-                          }}>
-                            {b.adjustment >= 0 ? '+' : ''}₹{Number(b.adjustment).toFixed(2)}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>
-                        {b.new_carry_forward_balance !== undefined ? 
-                          `₹${Number(b.new_carry_forward_balance).toFixed(2)}` : '-'}
-                      </td>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center' }}>
-                        <span style={{ 
-                          color: b.status === 'paid' ? '#28a745' : '#ff9800',
-                          fontWeight: 'bold',
-                          padding: '4px 8px',
-                          borderRadius: '12px',
-                          backgroundColor: b.status === 'paid' ? '#d4edda' : '#fff3cd'
-                        }}>
+                    <div 
+                      key={b.bill_id} 
+                      className="bill-card"
+                      style={{ backgroundColor: b.status === 'paid' ? '#f8fff9' : '#fff8e1' }}
+                    >
+                      {/* Header Row */}
+                      <div className="bill-header">
+                        <div className="bill-date">
+                          {formatDDMMYYYY(b.createdAt)}
+                        </div>
+                        <span className={`bill-status ${b.status === 'pending' ? 'pending' : ''}`}>
                           {b.status}
                         </span>
-                      </td>
-                      <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center' }}>
+                      </div>
+
+                      {/* Period */}
+                      <div className="bill-period">
+                        <span className="bill-period-label">Period: </span>
+                        {formatDDMMYYYY(b.period_start)} - {formatDDMMYYYY(b.period_end)}
+                      </div>
+
+                      {/* Financial Details Grid */}
+                      <div className="bill-financial-grid">
+                        <div className="bill-financial-item">
+                          <span className="bill-financial-label">Milk Total:</span>
+                          <span className="bill-financial-value">₹{Number(b.milk_total_amount).toFixed(2)}</span>
+                        </div>
+                        <div className="bill-financial-item">
+                          <span className="bill-financial-label">Feed Deducted:</span>
+                          <span className="bill-financial-value">₹{Number(b.feed_deducted_this_cycle).toFixed(2)}</span>
+                        </div>
+                        <div className="bill-financial-item">
+                          <span className="bill-financial-label">Prev Carry-Forward:</span>
+                          <span className="bill-financial-value">₹{Number(b.previous_carry_forward || 0).toFixed(2)}</span>
+                        </div>
+                        <div className="bill-financial-item">
+                          <span className="bill-financial-label">Net Payable:</span>
+                          <span className="bill-financial-value net-payable">₹{Number(b.net_payable).toFixed(2)}</span>
+                        </div>
+                      </div>
+
+                      {/* Payment Details */}
+                      <div className="bill-payment-section">
+                        <div className="bill-payment-grid">
+                          <div className="bill-financial-item">
+                            <span className="bill-financial-label">Actual Paid:</span>
+                            {editingPayment === b.bill_id ? (
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={paymentAmount}
+                                onChange={e => setPaymentAmount(e.target.value)}
+                                className="bill-input"
+                              />
+                            ) : (
+                              <span className="bill-financial-value">
+                                {b.actual_paid_amount > 0 ? `₹${Number(b.actual_paid_amount).toFixed(2)}` : 'Not paid'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="bill-financial-item">
+                            <span className="bill-financial-label">Adjustment:</span>
+                            {b.adjustment !== undefined ? (
+                              <span className="bill-financial-value" style={{ 
+                                color: b.adjustment >= 0 ? '#28a745' : '#dc3545'
+                              }}>
+                                {b.adjustment >= 0 ? '+' : ''}₹{Number(b.adjustment).toFixed(2)}
+                              </span>
+                            ) : '-'}
+                          </div>
+                        </div>
+                        <div className="bill-financial-item">
+                          <span className="bill-financial-label">New Carry-Forward:</span>
+                          <span className="bill-financial-value">
+                            {b.new_carry_forward_balance !== undefined ? 
+                              `₹${Number(b.new_carry_forward_balance).toFixed(2)}` : '-'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="bill-actions">
                         {editingPayment === b.bill_id ? (
-                          <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                          <>
                             <button 
                               onClick={() => handleUpdatePayment(b.bill_id)}
                               disabled={loading}
-                              style={{ 
-                                fontSize: '11px', 
-                                padding: '4px 8px', 
-                                backgroundColor: '#28a745',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: 'pointer'
-                              }}
+                              className="bill-action-button success"
                             >
                               Save
                             </button>
                             <button 
                               onClick={cancelEditingPayment}
-                              style={{ 
-                                fontSize: '11px', 
-                                padding: '4px 8px', 
-                                backgroundColor: '#6c757d',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: 'pointer'
-                              }}
+                              className="bill-action-button secondary"
                             >
                               Cancel
                             </button>
-                          </div>
+                          </>
                         ) : (
-                          <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                          <>
                             <button 
                               onClick={() => startEditingPayment(b)}
                               disabled={loading}
-                              style={{ 
-                                fontSize: '11px', 
-                                padding: '4px 8px', 
-                                backgroundColor: '#007bff',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: 'pointer'
-                              }}
+                              className="bill-action-button primary"
                             >
                               {b.status === 'paid' ? 'Edit' : 'Enter Payment'}
                             </button>
                             <button 
                               onClick={() => handleDelete(b.bill_id)} 
                               disabled={loading}
-                              style={{ 
-                                fontSize: '11px', 
-                                padding: '4px 8px', 
-                                backgroundColor: '#dc3545',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: 'pointer'
-                              }}
+                              className="bill-action-button danger"
                             >
                               Delete
                             </button>
-                          </div>
+                          </>
                         )}
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

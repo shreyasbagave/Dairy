@@ -595,4 +595,182 @@ button:focus, input:focus, select:focus, textarea:focus {
     padding: 16px;
     max-height: 85vh;
   }
+}
+
+/* Billing Table Responsive Design */
+.desktop-table {
+  display: none;
+}
+
+.mobile-cards {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .desktop-table {
+    display: block;
+  }
+  
+  .mobile-cards {
+    display: none;
+  }
+}
+
+/* Mobile card styling */
+.mobile-cards .bill-card {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-cards .bill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+}
+
+.mobile-cards .bill-date {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+}
+
+.mobile-cards .bill-status {
+  color: #28a745;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background-color: #d4edda;
+  font-size: 12px;
+}
+
+.mobile-cards .bill-status.pending {
+  color: #ff9800;
+  background-color: #fff3cd;
+}
+
+.mobile-cards .bill-period {
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.mobile-cards .bill-period-label {
+  font-weight: bold;
+  color: #666;
+}
+
+.mobile-cards .bill-financial-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.mobile-cards .bill-financial-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-cards .bill-financial-label {
+  color: #666;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.mobile-cards .bill-financial-value {
+  font-weight: bold;
+  color: #333;
+}
+
+.mobile-cards .bill-financial-value.net-payable {
+  color: #1976d2;
+}
+
+.mobile-cards .bill-payment-section {
+  border-top: 1px solid #eee;
+  padding-top: 12px;
+  margin-bottom: 12px;
+}
+
+.mobile-cards .bill-payment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.mobile-cards .bill-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  border-top: 1px solid #eee;
+  padding-top: 12px;
+}
+
+.mobile-cards .bill-action-button {
+  flex: 1;
+  font-size: 12px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.mobile-cards .bill-action-button.primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.mobile-cards .bill-action-button.success {
+  background-color: #28a745;
+  color: white;
+}
+
+.mobile-cards .bill-action-button.danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.mobile-cards .bill-action-button.secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.mobile-cards .bill-input {
+  width: 100%;
+  padding: 6px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* Responsive adjustments for very small screens */
+@media (max-width: 480px) {
+  .mobile-cards .bill-financial-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  
+  .mobile-cards .bill-payment-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  
+  .mobile-cards .bill-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .mobile-cards .bill-action-button {
+    width: 100%;
+  }
 } 
