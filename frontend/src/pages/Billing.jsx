@@ -401,7 +401,7 @@ export default function Billing() {
               <div style={{ padding: '12px', backgroundColor: '#fff3e0', borderRadius: 6, border: '2px solid #ff9800' }}>
                 <strong style={{ color: '#e65100' }}>🌅 Morning Session</strong><br />
                 <div style={{ marginTop: '4px' }}>
-                  <small>Liters: {preview.milk?.morning?.liters ?? 0} L</small><br />
+                  <small>Liters: {Number(preview.milk?.morning?.liters ?? 0).toFixed(2)} L</small><br />
                   <small>Amount: ₹{Number(preview.milk?.morning?.amount ?? 0).toFixed(2)}</small>
                 </div>
               </div>
@@ -410,7 +410,7 @@ export default function Billing() {
               <div style={{ padding: '12px', backgroundColor: '#e8f5e8', borderRadius: 6, border: '2px solid #4caf50' }}>
                 <strong style={{ color: '#2e7d32' }}>🌆 Evening Session</strong><br />
                 <div style={{ marginTop: '4px' }}>
-                  <small>Liters: {preview.milk?.evening?.liters ?? 0} L</small><br />
+                  <small>Liters: {Number(preview.milk?.evening?.liters ?? 0).toFixed(2)} L</small><br />
                   <small>Amount: ₹{Number(preview.milk?.evening?.amount ?? 0).toFixed(2)}</small>
                 </div>
               </div>
@@ -419,7 +419,7 @@ export default function Billing() {
               <div style={{ padding: '12px', backgroundColor: '#e3f2fd', borderRadius: 6, border: '2px solid #2196f3' }}>
                 <strong style={{ color: '#1976d2' }}>📊 Total Milk</strong><br />
                 <div style={{ marginTop: '4px' }}>
-                  <small>Liters: {preview.milk?.total?.liters ?? 0} L</small><br />
+                  <small>Liters: {Number(preview.milk?.total?.liters ?? 0).toFixed(2)} L</small><br />
                   <small>Amount: ₹{Number(preview.milk?.total?.amount ?? 0).toFixed(2)}</small>
                 </div>
               </div>
@@ -508,7 +508,7 @@ export default function Billing() {
 
         {/* Billing History */}
         <div style={{ border: '1px solid #ddd', padding: 16, borderRadius: 8 }}>
-          <h3 style={{ marginTop: 0, marginBottom: 16 }}>📊 Complete Billing History - {farmerId || 'Select Farmer'}</h3>
+          <h3 style={{ marginTop: 0, marginBottom: 16 }}>📊  Billing History </h3>
           
           {/* Debug Info */}
           <div style={{ 
@@ -519,9 +519,9 @@ export default function Billing() {
             fontSize: '12px',
             fontFamily: 'monospace'
           }}>
-            <strong>Debug Info:</strong> Screen Width: {window.innerWidth}px | 
+            {/* <strong>Debug Info:</strong> Screen Width: {window.innerWidth}px | 
             Desktop Table: {window.innerWidth >= 1024 ? 'SHOULD SHOW' : 'HIDDEN'} | 
-            Mobile Cards: {window.innerWidth < 1024 ? 'SHOULD SHOW' : 'HIDDEN'}
+            Mobile Cards: {window.innerWidth < 1024 ? 'SHOULD SHOW' : 'HIDDEN'} */}
           </div>
           
           {/* Test Responsive Elements */}
@@ -534,10 +534,10 @@ export default function Billing() {
             fontFamily: 'monospace'
           }}>
             <div className="desktop-table" style={{backgroundColor: '#d4edda', padding: '4px', margin: '4px 0'}}>
-              🖥️ Desktop Table Element (should be hidden on mobile)
+              {/* 🖥️ Desktop Table Element (should be hidden on mobile) */}
             </div>
             <div className="mobile-cards" style={{backgroundColor: '#f8d7da', padding: '4px', margin: '4px 0'}}>
-              📱 Mobile Cards Element (should be hidden on desktop)
+              {/* 📱 Mobile Cards Element (should be hidden on desktop) */}
             </div>
           </div>
           {!farmerId ? (
@@ -582,7 +582,7 @@ export default function Billing() {
                           </td>
                           <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center', backgroundColor: '#fff3e0' }}>
                             <div style={{ fontSize: '12px' }}>
-                              <div>{b.morning_milk_liters || 0} L</div>
+                              <div>{Number(b.morning_milk_liters || 0).toFixed(2)} L</div>
                               <div style={{ fontWeight: 'bold', color: '#e65100' }}>
                                 ₹{Number(b.morning_milk_amount || 0).toFixed(2)}
                               </div>
@@ -590,7 +590,7 @@ export default function Billing() {
                           </td>
                           <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center', backgroundColor: '#e8f5e8' }}>
                             <div style={{ fontSize: '12px' }}>
-                              <div>{b.evening_milk_liters || 0} L</div>
+                              <div>{Number(b.evening_milk_liters || 0).toFixed(2)} L</div>
                               <div style={{ fontWeight: 'bold', color: '#2e7d32' }}>
                                 ₹{Number(b.evening_milk_amount || 0).toFixed(2)}
                               </div>
@@ -598,7 +598,7 @@ export default function Billing() {
                           </td>
                           <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#e3f2fd' }}>
                             <div style={{ fontSize: '12px' }}>
-                              <div>{b.milk_total_liters || 0} L</div>
+                              <div>{Number(b.milk_total_liters || 0).toFixed(2)} L</div>
                               <div style={{ color: '#1976d2' }}>
                                 ₹{Number(b.milk_total_amount || 0).toFixed(2)}
                               </div>
@@ -776,7 +776,7 @@ export default function Billing() {
                             border: '1px solid #ffcc80'
                           }}>
                             <div style={{ fontSize: '12px', color: '#e65100', fontWeight: 'bold' }}>🌅 Morning</div>
-                            <div style={{ fontSize: '11px', color: '#666' }}>{b.morning_milk_liters || 0} L</div>
+                            <div style={{ fontSize: '11px', color: '#666' }}>{Number(b.morning_milk_liters || 0).toFixed(2)} L</div>
                             <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#e65100' }}>
                               ₹{Number(b.morning_milk_amount || 0).toFixed(2)}
                             </div>
@@ -790,7 +790,7 @@ export default function Billing() {
                             border: '1px solid #a5d6a7'
                           }}>
                             <div style={{ fontSize: '12px', color: '#2e7d32', fontWeight: 'bold' }}>🌆 Evening</div>
-                            <div style={{ fontSize: '11px', color: '#666' }}>{b.evening_milk_liters || 0} L</div>
+                            <div style={{ fontSize: '11px', color: '#666' }}>{Number(b.evening_milk_liters || 0).toFixed(2)} L</div>
                             <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#2e7d32' }}>
                               ₹{Number(b.evening_milk_amount || 0).toFixed(2)}
                             </div>
@@ -807,7 +807,7 @@ export default function Billing() {
                           textAlign: 'center'
                         }}>
                           <div style={{ fontSize: '12px', color: '#1976d2', fontWeight: 'bold' }}>📊 Total</div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>{b.milk_total_liters || 0} L</div>
+                          <div style={{ fontSize: '11px', color: '#666' }}>{Number(b.milk_total_liters || 0).toFixed(2)} L</div>
                           <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1976d2' }}>
                             ₹{Number(b.milk_total_amount || 0).toFixed(2)}
                           </div>
