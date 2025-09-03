@@ -46,9 +46,28 @@ async function computeMilkTotals(adminId, farmerId, startDate, endDate) {
     farmer_id: farmerId,
     date: { $gte: startDate, $lte: endDate },
   });
-  const milk_total_liters = logs.reduce((sum, l) => sum + (l.quantity_liters || 0), 0);
-  const milk_total_amount = logs.reduce((sum, l) => sum + (l.total_cost || 0), 0);
-  return { milk_total_liters, milk_total_amount };
+  
+  // Calculate session-wise totals
+  const morningLogs = logs.filter(log => log.session === 'Morning');
+  const eveningLogs = logs.filter(log => log.session === 'Evening');
+  
+  const morning_milk_liters = morningLogs.reduce((sum, l) => sum + (l.quantity_liters || 0), 0);
+  const morning_milk_amount = morningLogs.reduce((sum, l) => sum + (l.total_cost || 0), 0);
+  const evening_milk_liters = eveningLogs.reduce((sum, l) => sum + (l.quantity_liters || 0), 0);
+  const evening_milk_amount = eveningLogs.reduce((sum, l) => sum + (l.total_cost || 0), 0);
+  
+  // Calculate totals
+  const milk_total_liters = morning_milk_liters + evening_milk_liters;
+  const milk_total_amount = morning_milk_amount + evening_milk_amount;
+  
+  return { 
+    morning_milk_liters, 
+    morning_milk_amount, 
+    evening_milk_liters, 
+    evening_milk_amount,
+    milk_total_liters, 
+    milk_total_amount 
+  };
 }
 
 // Helper to compute current feed balance (purchases - deductions)
@@ -83,7 +102,20 @@ exports.previewBill = async (req, res) => {
     
     res.json({ 
       success: true, 
-      milk, 
+      milk: {
+        morning: {
+          liters: milk.morning_milk_liters,
+          amount: milk.morning_milk_amount
+        },
+        evening: {
+          liters: milk.evening_milk_liters,
+          amount: milk.evening_milk_amount
+        },
+        total: {
+          liters: milk.milk_total_liters,
+          amount: milk.milk_total_amount
+        }
+      },
       feedBalance,
       previousCarryForward,
       net_payable
@@ -133,8 +165,17 @@ exports.generateBill = async (req, res) => {
       farmer_id,
       period_start: start,
       period_end: end,
+      
+      // Session-wise breakdown
+      morning_milk_liters: milk.morning_milk_liters,
+      morning_milk_amount: milk.morning_milk_amount,
+      evening_milk_liters: milk.evening_milk_liters,
+      evening_milk_amount: milk.evening_milk_amount,
+      
+      // Total milk (calculated from session breakdowns)
       milk_total_liters: milk.milk_total_liters,
       milk_total_amount: milk.milk_total_amount,
+      
       feed_deducted_this_cycle: deduction,
       remaining_feed_balance_after: remaining_after,
       net_payable,

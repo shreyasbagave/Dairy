@@ -39,6 +39,37 @@ export default function Billing() {
   const [error, setError] = useState('');
   const [editingPayment, setEditingPayment] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
+  
+  // Debug: Log screen width and handle responsive display
+  useEffect(() => {
+    const logScreenSize = () => {
+      console.log('Screen width:', window.innerWidth, 'px');
+      console.log('Screen height:', window.innerHeight, 'px');
+      console.log('Window width:', window.outerWidth, 'px');
+      console.log('Device pixel ratio:', window.devicePixelRatio);
+      
+      // Force responsive display as fallback
+      const desktopTable = document.querySelector('.desktop-table');
+      const mobileCards = document.querySelector('.mobile-cards');
+      
+      if (desktopTable && mobileCards) {
+        if (window.innerWidth >= 1024) {
+          desktopTable.style.display = 'block';
+          mobileCards.style.display = 'none';
+          console.log('Forcing desktop view');
+        } else {
+          desktopTable.style.display = 'none';
+          mobileCards.style.display = 'block';
+          console.log('Forcing mobile view');
+        }
+      }
+    };
+    
+    logScreenSize();
+    window.addEventListener('resize', logScreenSize);
+    
+    return () => window.removeEventListener('resize', logScreenSize);
+  }, []);
 
   const remaining = useMemo(() => {
     return balance?.balance?.remaining ?? 0;
@@ -46,7 +77,7 @@ export default function Billing() {
 
   const netPayable = useMemo(() => {
     if (!preview) return 0;
-    return (preview.milk?.milk_total_amount || 0) - (Number(deduction || 0)) + (preview.previousCarryForward || 0);
+    return (preview.milk?.total?.amount || 0) - (Number(deduction || 0)) + (preview.previousCarryForward || 0);
   }, [preview, deduction]);
 
   useEffect(() => {
@@ -365,21 +396,43 @@ export default function Billing() {
                 <strong>Period:</strong><br />
                 {formatDDMMYYYY(periodStart)} → {formatDDMMYYYY(periodEnd)}
               </div>
-              <div style={{ padding: '12px', backgroundColor: 'white', borderRadius: 6, border: '1px solid #ddd' }}>
-                <strong>Milk Liters:</strong><br />
-                {preview.milk?.milk_total_liters ?? 0} L
+              
+              {/* Morning Session */}
+              <div style={{ padding: '12px', backgroundColor: '#fff3e0', borderRadius: 6, border: '2px solid #ff9800' }}>
+                <strong style={{ color: '#e65100' }}>🌅 Morning Session</strong><br />
+                <div style={{ marginTop: '4px' }}>
+                  <small>Liters: {preview.milk?.morning?.liters ?? 0} L</small><br />
+                  <small>Amount: ₹{Number(preview.milk?.morning?.amount ?? 0).toFixed(2)}</small>
+                </div>
               </div>
-              <div style={{ padding: '12px', backgroundColor: 'white', borderRadius: 6, border: '1px solid #ddd' }}>
-                <strong>Milk Amount:</strong><br />
-                ₹{Number(preview.milk?.milk_total_amount ?? 0).toFixed(2)}
+              
+              {/* Evening Session */}
+              <div style={{ padding: '12px', backgroundColor: '#e8f5e8', borderRadius: 6, border: '2px solid #4caf50' }}>
+                <strong style={{ color: '#2e7d32' }}>🌆 Evening Session</strong><br />
+                <div style={{ marginTop: '4px' }}>
+                  <small>Liters: {preview.milk?.evening?.liters ?? 0} L</small><br />
+                  <small>Amount: ₹{Number(preview.milk?.evening?.amount ?? 0).toFixed(2)}</small>
+                </div>
               </div>
+              
+              {/* Total Milk */}
+              <div style={{ padding: '12px', backgroundColor: '#e3f2fd', borderRadius: 6, border: '2px solid #2196f3' }}>
+                <strong style={{ color: '#1976d2' }}>📊 Total Milk</strong><br />
+                <div style={{ marginTop: '4px' }}>
+                  <small>Liters: {preview.milk?.total?.liters ?? 0} L</small><br />
+                  <small>Amount: ₹{Number(preview.milk?.total?.amount ?? 0).toFixed(2)}</small>
+                </div>
+              </div>
+              
               <div style={{ padding: '12px', backgroundColor: 'white', borderRadius: 6, border: '1px solid #ddd' }}>
                 <strong>Feed Balance:</strong><br />
                 ₹{Number(preview.feedBalance?.remaining ?? 0).toFixed(2)}
               </div>
               <div style={{ padding: '12px', backgroundColor: 'white', borderRadius: 6, border: '1px solid #ddd' }}>
                 <strong>Previous Carry-Forward:</strong><br />
-                ₹{Number(preview.previousCarryForward ?? 0).toFixed(2)}
+                <span style={{ fontSize: '14px', color: '#666' }}>
+                  ₹{Number(preview.previousCarryForward ?? 0).toFixed(2)}
+                </span>
               </div>
               <div style={{ padding: '12px', backgroundColor: '#e3f2fd', borderRadius: 6, border: '2px solid #2196f3' }}>
                 <strong style={{ color: '#1976d2' }}>Net Payable:</strong><br />
@@ -456,6 +509,37 @@ export default function Billing() {
         {/* Billing History */}
         <div style={{ border: '1px solid #ddd', padding: 16, borderRadius: 8 }}>
           <h3 style={{ marginTop: 0, marginBottom: 16 }}>📊 Complete Billing History - {farmerId || 'Select Farmer'}</h3>
+          
+          {/* Debug Info */}
+          <div style={{ 
+            backgroundColor: '#f0f8ff', 
+            padding: '8px 12px', 
+            borderRadius: '4px', 
+            marginBottom: '16px',
+            fontSize: '12px',
+            fontFamily: 'monospace'
+          }}>
+            <strong>Debug Info:</strong> Screen Width: {window.innerWidth}px | 
+            Desktop Table: {window.innerWidth >= 1024 ? 'SHOULD SHOW' : 'HIDDEN'} | 
+            Mobile Cards: {window.innerWidth < 1024 ? 'SHOULD SHOW' : 'HIDDEN'}
+          </div>
+          
+          {/* Test Responsive Elements */}
+          <div style={{ 
+            backgroundColor: '#fff3cd', 
+            padding: '8px 12px', 
+            borderRadius: '4px', 
+            marginBottom: '16px',
+            fontSize: '12px',
+            fontFamily: 'monospace'
+          }}>
+            <div className="desktop-table" style={{backgroundColor: '#d4edda', padding: '4px', margin: '4px 0'}}>
+              🖥️ Desktop Table Element (should be hidden on mobile)
+            </div>
+            <div className="mobile-cards" style={{backgroundColor: '#f8d7da', padding: '4px', margin: '4px 0'}}>
+              📱 Mobile Cards Element (should be hidden on desktop)
+            </div>
+          </div>
           {!farmerId ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
               Please select a farmer to view their complete billing history
@@ -467,14 +551,16 @@ export default function Billing() {
           ) : (
             <>
               {/* Desktop Table View */}
-              <div className="desktop-table" style={{ display: 'none' }}>
+              <div className="desktop-table" data-debug="desktop-table-element">
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                     <thead>
                       <tr style={{ backgroundColor: '#f8f9fa' }}>
                         <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'left', fontWeight: 'bold' }}>Bill Date</th>
                         <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'left', fontWeight: 'bold' }}>Period</th>
-                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Milk Total</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center', fontWeight: 'bold', backgroundColor: '#fff3e0' }}>🌅 Morning</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center', fontWeight: 'bold', backgroundColor: '#e8f5e8' }}>🌆 Evening</th>
+                        <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#e3f2fd' }}>📊 Total Milk</th>
                         <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Feed Deducted</th>
                         <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Prev Carry-Forward</th>
                         <th style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>Net Payable</th>
@@ -494,8 +580,29 @@ export default function Billing() {
                           <td style={{ padding: '12px 8px', border: '1px solid #dee2e6' }}>
                             {formatDDMMYYYY(b.period_start)} - {formatDDMMYYYY(b.period_end)}
                           </td>
-                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>
-                            ₹{Number(b.milk_total_amount).toFixed(2)}
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center', backgroundColor: '#fff3e0' }}>
+                            <div style={{ fontSize: '12px' }}>
+                              <div>{b.morning_milk_liters || 0} L</div>
+                              <div style={{ fontWeight: 'bold', color: '#e65100' }}>
+                                ₹{Number(b.morning_milk_amount || 0).toFixed(2)}
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'center', backgroundColor: '#e8f5e8' }}>
+                            <div style={{ fontSize: '12px' }}>
+                              <div>{b.evening_milk_liters || 0} L</div>
+                              <div style={{ fontWeight: 'bold', color: '#2e7d32' }}>
+                                ₹{Number(b.evening_milk_amount || 0).toFixed(2)}
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#e3f2fd' }}>
+                            <div style={{ fontSize: '12px' }}>
+                              <div>{b.milk_total_liters || 0} L</div>
+                              <div style={{ color: '#1976d2' }}>
+                                ₹{Number(b.milk_total_amount || 0).toFixed(2)}
+                              </div>
+                            </div>
                           </td>
                           <td style={{ padding: '12px 8px', border: '1px solid #dee2e6', textAlign: 'right' }}>
                             ₹{Number(b.feed_deducted_this_cycle).toFixed(2)}
@@ -620,7 +727,7 @@ export default function Billing() {
               </div>
 
               {/* Mobile Card View */}
-              <div className="mobile-cards">
+              <div className="mobile-cards" data-debug="mobile-cards-element">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {history.map(b => (
                     <div 
@@ -644,12 +751,71 @@ export default function Billing() {
                         {formatDDMMYYYY(b.period_start)} - {formatDDMMYYYY(b.period_end)}
                       </div>
 
-                      {/* Financial Details Grid */}
-                      <div className="bill-financial-grid">
-                        <div className="bill-financial-item">
-                          <span className="bill-financial-label">Milk Total:</span>
-                          <span className="bill-financial-value">₹{Number(b.milk_total_amount).toFixed(2)}</span>
+                      {/* Session-wise Milk Breakdown */}
+                      <div style={{ 
+                        backgroundColor: '#f8f9fa', 
+                        padding: '12px', 
+                        borderRadius: '6px', 
+                        marginBottom: '12px',
+                        border: '1px solid #e9ecef'
+                      }}>
+                        <div style={{ 
+                          fontSize: '14px', 
+                          fontWeight: 'bold', 
+                          marginBottom: '8px',
+                          color: '#495057'
+                        }}>
+                          🥛 Milk Breakdown
                         </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                          {/* Morning Session */}
+                          <div style={{ 
+                            backgroundColor: '#fff3e0', 
+                            padding: '8px', 
+                            borderRadius: '4px',
+                            border: '1px solid #ffcc80'
+                          }}>
+                            <div style={{ fontSize: '12px', color: '#e65100', fontWeight: 'bold' }}>🌅 Morning</div>
+                            <div style={{ fontSize: '11px', color: '#666' }}>{b.morning_milk_liters || 0} L</div>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#e65100' }}>
+                              ₹{Number(b.morning_milk_amount || 0).toFixed(2)}
+                            </div>
+                          </div>
+                          
+                          {/* Evening Session */}
+                          <div style={{ 
+                            backgroundColor: '#e8f5e8', 
+                            padding: '8px', 
+                            borderRadius: '4px',
+                            border: '1px solid #a5d6a7'
+                          }}>
+                            <div style={{ fontSize: '12px', color: '#2e7d32', fontWeight: 'bold' }}>🌆 Evening</div>
+                            <div style={{ fontSize: '11px', color: '#666' }}>{b.evening_milk_liters || 0} L</div>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#2e7d32' }}>
+                              ₹{Number(b.evening_milk_amount || 0).toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Total Milk */}
+                        <div style={{ 
+                          backgroundColor: '#e3f2fd', 
+                          padding: '8px', 
+                          borderRadius: '4px',
+                          border: '1px solid #90caf9',
+                          marginTop: '8px',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#1976d2', fontWeight: 'bold' }}>📊 Total</div>
+                          <div style={{ fontSize: '11px', color: '#666' }}>{b.milk_total_liters || 0} L</div>
+                          <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1976d2' }}>
+                            ₹{Number(b.milk_total_amount || 0).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Other Financial Details */}
+                      <div className="bill-financial-grid">
                         <div className="bill-financial-item">
                           <span className="bill-financial-label">Feed Deducted:</span>
                           <span className="bill-financial-value">₹{Number(b.feed_deducted_this_cycle).toFixed(2)}</span>

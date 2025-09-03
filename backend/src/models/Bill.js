@@ -7,8 +7,17 @@ const BillSchema = new mongoose.Schema(
     farmer_id: { type: String, required: true, index: true },
     period_start: { type: Date, required: true },
     period_end: { type: Date, required: true },
+    
+    // Session-wise breakdown
+    morning_milk_liters: { type: Number, required: true, default: 0 },
+    morning_milk_amount: { type: Number, required: true, default: 0 },
+    evening_milk_liters: { type: Number, required: true, default: 0 },
+    evening_milk_amount: { type: Number, required: true, default: 0 },
+    
+    // Total milk (calculated from session breakdowns)
     milk_total_liters: { type: Number, required: true },
     milk_total_amount: { type: Number, required: true },
+    
     feed_deducted_this_cycle: { type: Number, required: true },
     remaining_feed_balance_after: { type: Number, required: true },
     net_payable: { type: Number, required: true },

@@ -597,22 +597,47 @@ button:focus, input:focus, select:focus, textarea:focus {
   }
 }
 
-/* Billing Table Responsive Design */
-.desktop-table {
-  display: none;
+/* Billing Table Responsive Design - High Specificity */
+div.desktop-table {
+  display: none !important;
+  /* Debug: Add border to see if element exists */
+  border: 2px solid #007bff;
 }
 
-.mobile-cards {
-  display: block;
+div.mobile-cards {
+  display: block !important;
+  /* Debug: Add border to see if element exists */
+  border: 2px solid #28a745;
 }
 
-@media (min-width: 768px) {
-  .desktop-table {
-    display: block;
+/* Even higher specificity for data attributes */
+div[data-debug="desktop-table-element"].desktop-table {
+  display: none !important;
+}
+
+div[data-debug="mobile-cards-element"].mobile-cards {
+  display: block !important;
+}
+
+/* Tablet breakpoint */
+@media (min-width: 768px) and (max-width: 1023px) {
+  div.desktop-table {
+    display: block !important;
   }
   
-  .mobile-cards {
-    display: none;
+  div.mobile-cards {
+    display: none !important;
+  }
+}
+
+/* Desktop breakpoint */
+@media (min-width: 1024px) {
+  div.desktop-table {
+    display: block !important;
+  }
+  
+  div.mobile-cards {
+    display: none !important;
   }
 }
 
@@ -624,6 +649,37 @@ button:focus, input:focus, select:focus, textarea:focus {
   margin-bottom: 12px;
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Session-wise table column styling */
+.desktop-table th[style*="background-color: #fff3e0"] {
+  background-color: #fff3e0 !important;
+  color: #e65100 !important;
+}
+
+.desktop-table th[style*="background-color: #e8f5e8"] {
+  background-color: #e8f5e8 !important;
+  color: #2e7d32 !important;
+}
+
+.desktop-table th[style*="background-color: #e3f2fd"] {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+
+/* Responsive table improvements for session-wise columns */
+@media (max-width: 1200px) {
+  .desktop-table th,
+  .desktop-table td {
+    padding: 8px 4px !important;
+    font-size: 12px !important;
+  }
+  
+  .desktop-table th[style*="background-color: #fff3e0"],
+  .desktop-table th[style*="background-color: #e8f5e8"],
+  .desktop-table th[style*="background-color: #e3f2fd"] {
+    font-size: 11px !important;
+  }
 }
 
 .mobile-cards .bill-header {
