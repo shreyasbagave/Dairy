@@ -97,10 +97,10 @@ exports.farmerLogin = async (req, res) => {
 
     // Check if this is first-time login
     if (farmer.is_first_login) {
-      // For first-time login, we need to verify the farmer_id as password
-      if (password !== farmer_id) {
+      // For first-time login, use default password "12345678"
+      if (password !== '12345678') {
         return res.status(401).json({ 
-          message: 'First-time login: Please use your Farmer ID as password',
+          message: 'First-time login: Please use default password "12345678"',
           is_first_login: true 
         });
       }

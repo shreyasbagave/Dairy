@@ -95,6 +95,17 @@ function FarmerLoginPage() {
           }}>
             Access your milk records
           </p>
+          <div style={{
+            marginTop: '8px',
+            padding: '8px 12px',
+            backgroundColor: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '6px',
+            fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+            color: '#92400e'
+          }}>
+            <strong>First-time login:</strong> Use password "12345678"
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ 
