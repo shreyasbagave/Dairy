@@ -5,6 +5,9 @@ import { apiCall } from '../utils/api';
 function FarmerDashboard() {
   const [farmerInfo, setFarmerInfo] = useState(null);
   const [logs, setLogs] = useState([]);
+  const [feedPurchases, setFeedPurchases] = useState([]);
+  const [bills, setBills] = useState([]);
+  const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -22,38 +25,51 @@ function FarmerDashboard() {
     hour12: true 
   });
 
-  // Fetch farmer profile and milk logs
+  // Format date to DD/MM/YYYY
+  const formatDate = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Fetch all farmer data
   const fetchData = async () => {
     setLoading(true);
     setError('');
     
     try {
-      // Fetch farmer profile
-      const profileResponse = await apiCall('/farmer-auth/profile', {
+      // Fetch all farmer data from the comprehensive endpoint
+      const response = await apiCall('/farmer-auth/all-data', {
         method: 'GET'
       });
 
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
-        setFarmerInfo(profileData);
-      }
-
-      // Fetch milk logs
-      const logsResponse = await apiCall('/farmer/milk-logs-new', {
-        method: 'GET'
-      });
-
-      if (logsResponse.ok) {
-        const logsData = await logsResponse.json();
-        setLogs(logsData);
+      if (response.ok) {
+        const data = await response.json();
+        setFarmerInfo(data.farmer);
+        setLogs(data.milkLogs || []);
+        setFeedPurchases(data.feedPurchases || []);
+        setBills(data.bills || []);
+        setSummary(data.summary || {});
       } else {
-        // Fallback to old endpoint
-        const fallbackResponse = await apiCall('/farmer/milk-logs', {
-          method: 'GET'
-        });
-        if (fallbackResponse.ok) {
-          const fallbackData = await fallbackResponse.json();
-          setLogs(fallbackData);
+        // Fallback to individual endpoints if comprehensive endpoint fails
+        console.log('Comprehensive endpoint failed, trying individual endpoints...');
+        
+        const [profileResponse, logsResponse] = await Promise.all([
+          apiCall('/farmer-auth/profile', { method: 'GET' }),
+          apiCall('/farmer/milk-logs-new', { method: 'GET' })
+        ]);
+
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          setFarmerInfo(profileData);
+        }
+
+        if (logsResponse.ok) {
+          const logsData = await logsResponse.json();
+          setLogs(logsData);
         }
       }
     } catch (err) {
@@ -182,7 +198,7 @@ function FarmerDashboard() {
           fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
           color: '#4a5568'
         }}>
-          <span>📅 {currentDate.toLocaleDateString()}</span>
+          <span>📅 {formatDate(currentDate)}</span>
           <span>🕐 {currentTime}</span>
           <button
             onClick={handleLogout}
@@ -849,11 +865,7 @@ function FarmerDashboard() {
                               color: '#4a5568',
                               fontWeight: '500'
                             }}>
-                              {new Date(log.date).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
+                              {log.date || formatDate(log.originalDate)}
                             </td>
                             <td style={{ 
                               padding: '12px',
@@ -1066,61 +1078,412 @@ function FarmerDashboard() {
           )}
 
           {activeTab === 'feed' && (
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)',
-              padding: '24px',
-              borderRadius: '16px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)'
-            }}>
-              <h3 style={{
-                margin: '0 0 20px 0',
-                fontSize: '1.25rem',
-                color: '#2d3748',
-                fontWeight: '600'
-              }}>
-                🌾 Feed Management
-              </h3>
+            <div>
               <div style={{
-                textAlign: 'center',
-                padding: '40px',
-                color: '#718096',
-                fontSize: '1rem'
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                padding: '24px',
+                borderRadius: '16px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
               }}>
-                Feed management functionality will be implemented here.
-                <br />
-                This will show feed purchases and consumption records.
+                <h3 style={{
+                  margin: '0 0 24px 0',
+                  fontSize: '1.5rem',
+                  color: '#2d3748',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  🌾 Feed Purchase Records
+                </h3>
+
+                {/* Feed Summary Cards */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                  gap: '20px',
+                  marginBottom: '24px'
+                }}>
+                  <div style={{
+                    background: '#f0fdf4',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid #bbf7d0'
+                  }}>
+                    <h4 style={{
+                      margin: '0 0 12px 0',
+                      fontSize: '1rem',
+                      color: '#166534',
+                      fontWeight: '600'
+                    }}>
+                      📦 Total Feed Purchased
+                    </h4>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#059669'
+                    }}>
+                      {summary.totalFeedPurchased || 0} kg
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: '#fef3c7',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid #fde68a'
+                  }}>
+                    <h4 style={{
+                      margin: '0 0 12px 0',
+                      fontSize: '1rem',
+                      color: '#92400e',
+                      fontWeight: '600'
+                    }}>
+                      💰 Total Feed Cost
+                    </h4>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#d97706'
+                    }}>
+                      ₹{summary.totalFeedCost || 0}
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: '#dbeafe',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid #93c5fd'
+                  }}>
+                    <h4 style={{
+                      margin: '0 0 12px 0',
+                      fontSize: '1rem',
+                      color: '#1e40af',
+                      fontWeight: '600'
+                    }}>
+                      📊 Total Purchases
+                    </h4>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#2563eb'
+                    }}>
+                      {summary.totalFeedPurchases || 0}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Feed Purchase Table */}
+                {feedPurchases.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '60px 20px',
+                    color: '#718096',
+                    fontSize: '1rem'
+                  }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌾</div>
+                    <div>No feed purchase records found.</div>
+                    <div style={{ fontSize: '0.875rem', marginTop: '8px' }}>
+                      Your feed purchase data will appear here once recorded.
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      fontSize: '0.875rem',
+                      background: '#fff',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                    }}>
+                      <thead>
+                        <tr style={{ background: '#f7fafc' }}>
+                          <th style={{
+                            padding: '16px 12px',
+                            textAlign: 'left',
+                            fontWeight: '600',
+                            color: '#2d3748',
+                            borderBottom: '2px solid #e2e8f0'
+                          }}>Date</th>
+                          <th style={{
+                            padding: '16px 12px',
+                            textAlign: 'right',
+                            fontWeight: '600',
+                            color: '#2d3748',
+                            borderBottom: '2px solid #e2e8f0'
+                          }}>Quantity (kg)</th>
+                          <th style={{
+                            padding: '16px 12px',
+                            textAlign: 'right',
+                            fontWeight: '600',
+                            color: '#2d3748',
+                            borderBottom: '2px solid #e2e8f0'
+                          }}>Price (₹)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {feedPurchases.map((feed, index) => (
+                          <tr key={index} style={{
+                            borderBottom: '1px solid #e2e8f0'
+                          }}>
+                            <td style={{ 
+                              padding: '12px',
+                              color: '#4a5568',
+                              fontWeight: '500'
+                            }}>
+                              {feed.date || formatDate(feed.originalDate)}
+                            </td>
+                            <td style={{ 
+                              padding: '12px',
+                              color: '#059669',
+                              fontWeight: '600',
+                              textAlign: 'right'
+                            }}>
+                              {feed.quantity || 0} kg
+                            </td>
+                            <td style={{ 
+                              padding: '12px',
+                              color: '#d97706',
+                              fontWeight: '600',
+                              textAlign: 'right'
+                            }}>
+                              ₹{feed.price || 0}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {activeTab === 'billing' && (
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)',
-              padding: '24px',
-              borderRadius: '16px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)'
-            }}>
-              <h3 style={{
-                margin: '0 0 20px 0',
-                fontSize: '1.25rem',
-                color: '#2d3748',
-                fontWeight: '600'
-              }}>
-                💰 Billing & Payments
-              </h3>
+            <div>
               <div style={{
-                textAlign: 'center',
-                padding: '40px',
-                color: '#718096',
-                fontSize: '1rem'
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                padding: '24px',
+                borderRadius: '16px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
               }}>
-                Billing functionality will be implemented here.
-                <br />
-                This will show payment history and current balance.
+                <h3 style={{
+                  margin: '0 0 24px 0',
+                  fontSize: '1.5rem',
+                  color: '#2d3748',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  💰 Billing & Payment Records
+                </h3>
+
+                {/* Billing Summary Cards */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                  gap: '20px',
+                  marginBottom: '24px'
+                }}>
+                  <div style={{
+                    background: '#f0fdf4',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid #bbf7d0'
+                  }}>
+                    <h4 style={{
+                      margin: '0 0 12px 0',
+                      fontSize: '1rem',
+                      color: '#166534',
+                      fontWeight: '600'
+                    }}>
+                      💵 Total Earnings
+                    </h4>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#059669'
+                    }}>
+                      ₹{summary.totalEarnings || 0}
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: '#fef3c7',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid #fde68a'
+                  }}>
+                    <h4 style={{
+                      margin: '0 0 12px 0',
+                      fontSize: '1rem',
+                      color: '#92400e',
+                      fontWeight: '600'
+                    }}>
+                      📊 Total Bills
+                    </h4>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#d97706'
+                    }}>
+                      {summary.totalBills || 0}
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: '#dbeafe',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid #93c5fd'
+                  }}>
+                    <h4 style={{
+                      margin: '0 0 12px 0',
+                      fontSize: '1rem',
+                      color: '#1e40af',
+                      fontWeight: '600'
+                    }}>
+                      🥛 Total Milk
+                    </h4>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#2563eb'
+                    }}>
+                      {summary.totalMilkCollected || 0} L
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bills Table */}
+                {bills.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '60px 20px',
+                    color: '#718096',
+                    fontSize: '1rem'
+                  }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>💰</div>
+                    <div>No billing records found.</div>
+                    <div style={{ fontSize: '0.875rem', marginTop: '8px' }}>
+                      Your billing data will appear here once generated.
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      fontSize: '0.875rem',
+                      background: '#fff',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                    }}>
+                      <thead>
+                        <tr style={{ background: '#f7fafc' }}>
+                          <th style={{
+                            padding: '16px 12px',
+                            textAlign: 'left',
+                            fontWeight: '600',
+                            color: '#2d3748',
+                            borderBottom: '2px solid #e2e8f0'
+                          }}>Period</th>
+                          <th style={{
+                            padding: '16px 12px',
+                            textAlign: 'right',
+                            fontWeight: '600',
+                            color: '#2d3748',
+                            borderBottom: '2px solid #e2e8f0'
+                          }}>Morning (L)</th>
+                          <th style={{
+                            padding: '16px 12px',
+                            textAlign: 'right',
+                            fontWeight: '600',
+                            color: '#2d3748',
+                            borderBottom: '2px solid #e2e8f0'
+                          }}>Evening (L)</th>
+                          <th style={{
+                            padding: '16px 12px',
+                            textAlign: 'right',
+                            fontWeight: '600',
+                            color: '#2d3748',
+                            borderBottom: '2px solid #e2e8f0'
+                          }}>Total Amount</th>
+                          <th style={{
+                            padding: '16px 12px',
+                            textAlign: 'center',
+                            fontWeight: '600',
+                            color: '#2d3748',
+                            borderBottom: '2px solid #e2e8f0'
+                          }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bills.map((bill, index) => (
+                          <tr key={index} style={{
+                            borderBottom: '1px solid #e2e8f0'
+                          }}>
+                            <td style={{ 
+                              padding: '12px',
+                              color: '#4a5568',
+                              fontWeight: '500'
+                            }}>
+                              {bill.period_start || formatDate(bill.originalPeriodStart)} - {bill.period_end || formatDate(bill.originalPeriodEnd)}
+                            </td>
+                            <td style={{ 
+                              padding: '12px',
+                              color: '#059669',
+                              fontWeight: '600',
+                              textAlign: 'right'
+                            }}>
+                              {bill.morning_milk_liters || 0} L
+                            </td>
+                            <td style={{ 
+                              padding: '12px',
+                              color: '#059669',
+                              fontWeight: '600',
+                              textAlign: 'right'
+                            }}>
+                              {bill.evening_milk_liters || 0} L
+                            </td>
+                            <td style={{ 
+                              padding: '12px',
+                              color: '#d97706',
+                              fontWeight: '600',
+                              textAlign: 'right'
+                            }}>
+                              ₹{bill.milk_total_amount || 0}
+                            </td>
+                            <td style={{ 
+                              padding: '12px',
+                              textAlign: 'center'
+                            }}>
+                              <span style={{
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.75rem',
+                                fontWeight: '500',
+                                background: bill.status === 'paid' ? '#f0fdf4' : '#fef3c7',
+                                color: bill.status === 'paid' ? '#166534' : '#92400e'
+                              }}>
+                                {bill.status === 'paid' ? '✅ Paid' : '⏳ Pending'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}

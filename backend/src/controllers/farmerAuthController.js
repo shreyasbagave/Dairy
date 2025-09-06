@@ -291,3 +291,80 @@ exports.getFarmerProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// Get all farmer data (profile, milk logs, feed, billing)
+exports.getFarmerAllData = async (req, res) => {
+  const farmer_id = req.user.farmer_id; // From JWT token
+  
+  try {
+    // Import models
+    const Farmer = require('../models/Farmer');
+    const MilkLog = require('../models/MilkLog');
+    const FeedPurchase = require('../models/FeedPurchase');
+    const Bill = require('../models/Bill');
+
+    // Fetch all data in parallel
+    const [farmer, milkLogs, feedPurchases, bills] = await Promise.all([
+      Farmer.findOne({ farmer_id }).select('-password_hash'),
+      MilkLog.find({ farmer_id }).sort({ date: -1, session: 1 }),
+      FeedPurchase.find({ farmer_id }).sort({ date: -1 }),
+      Bill.find({ farmer_id }).sort({ period_start: -1 })
+    ]);
+
+    if (!farmer) {
+      return res.status(404).json({ message: 'Farmer not found' });
+    }
+
+    // Format dates to DD/MM/YYYY
+    const formatDate = (date) => {
+      if (!date) return null;
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
+    // Format milk logs
+    const formattedMilkLogs = milkLogs.map(log => ({
+      ...log.toObject(),
+      date: formatDate(log.date),
+      originalDate: log.date
+    }));
+
+    // Format feed purchases
+    const formattedFeedPurchases = feedPurchases.map(feed => ({
+      ...feed.toObject(),
+      date: formatDate(feed.date),
+      originalDate: feed.date
+    }));
+
+    // Format bills
+    const formattedBills = bills.map(bill => ({
+      ...bill.toObject(),
+      period_start: formatDate(bill.period_start),
+      period_end: formatDate(bill.period_end),
+      originalPeriodStart: bill.period_start,
+      originalPeriodEnd: bill.period_end
+    }));
+
+    res.json({
+      farmer,
+      milkLogs: formattedMilkLogs,
+      feedPurchases: formattedFeedPurchases,
+      bills: formattedBills,
+      summary: {
+        totalMilkLogs: milkLogs.length,
+        totalFeedPurchases: feedPurchases.length,
+        totalBills: bills.length,
+        totalMilkCollected: milkLogs.reduce((sum, log) => sum + (log.quantity_liters || 0), 0),
+        totalFeedPurchased: feedPurchases.reduce((sum, feed) => sum + (feed.quantity || 0), 0),
+        totalEarnings: milkLogs.reduce((sum, log) => sum + (log.total_cost || 0), 0),
+        totalFeedCost: feedPurchases.reduce((sum, feed) => sum + (feed.price || 0), 0)
+      }
+    });
+  } catch (err) {
+    console.error('Get farmer all data error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

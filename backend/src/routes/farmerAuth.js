@@ -21,4 +21,7 @@ router.post('/change-password', authMiddleware, farmerAuthController.changeFarme
 // Get farmer profile
 router.get('/profile', authMiddleware, farmerAuthController.getFarmerProfile);
 
+// Get all farmer data (profile, milk logs, feed, billing)
+router.get('/all-data', authMiddleware, farmerAuthController.getFarmerAllData);
+
 module.exports = router;
