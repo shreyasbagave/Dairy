@@ -1,6 +1,89 @@
 const Farmer = require('../models/Farmer');
 const jwt = require('jsonwebtoken');
 
+// Farmer signup - register new farmer and auto-login
+exports.farmerSignup = async (req, res) => {
+  const { farmer_id, name, phone, address, bank_details, password } = req.body;
+  
+  try {
+    // Validate required fields
+    if (!farmer_id || !name || !phone || !address || !bank_details || !password) {
+      return res.status(400).json({ 
+        message: 'All fields are required: farmer_id, name, phone, address, bank_details, password' 
+      });
+    }
+
+    if (!bank_details.account_no || !bank_details.ifsc) {
+      return res.status(400).json({ 
+        message: 'Bank details must include account_no and ifsc' 
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ 
+        message: 'Password must be at least 6 characters long' 
+      });
+    }
+
+    // Check if farmer_id already exists
+    const existingFarmer = await Farmer.findOne({ farmer_id });
+    if (existingFarmer) {
+      return res.status(400).json({ 
+        message: 'Farmer ID already exists. Please use a different ID.' 
+      });
+    }
+
+    // Create new farmer
+    const farmer = new Farmer({
+      farmer_id,
+      admin_id: 'self-registered', // Mark as self-registered
+      name,
+      phone,
+      address,
+      bank_details,
+      is_first_login: false // Not first login since they're setting password now
+    });
+
+    // Set password
+    await farmer.setPassword(password);
+    await farmer.save();
+
+    // Generate JWT token for immediate login
+    const token = jwt.sign(
+      { 
+        farmerId: farmer._id, 
+        farmer_id: farmer.farmer_id,
+        admin_id: farmer.admin_id,
+        role: 'farmer' 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.status(201).json({ 
+      message: 'Farmer registered successfully and logged in',
+      token, 
+      role: 'farmer',
+      farmer_id: farmer.farmer_id,
+      farmer_name: farmer.name,
+      admin_id: farmer.admin_id,
+      is_first_login: false
+    });
+
+  } catch (err) {
+    console.error('Farmer signup error:', err);
+    
+    // Handle MongoDB duplicate key error
+    if (err.code === 11000) {
+      return res.status(400).json({ 
+        message: 'Farmer ID already exists. Please use a different ID.' 
+      });
+    }
+    
+    res.status(500).json({ message: 'Server error during signup' });
+  }
+};
+
 // Farmer login using farmer_id and password
 exports.farmerLogin = async (req, res) => {
   const { farmer_id, password } = req.body;

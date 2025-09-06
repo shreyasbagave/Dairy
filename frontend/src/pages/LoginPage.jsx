@@ -276,7 +276,7 @@ function LoginPage() {
           borderTop: '1px solid #e2e8f0'
         }}>
           <button
-            onClick={() => navigate('/farmer-login')}
+            onClick={() => navigate('/farmer/login')}
             style={{
               background: 'none',
               border: 'none',

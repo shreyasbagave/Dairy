@@ -206,12 +206,34 @@ function FarmerLoginPage() {
           paddingTop: 'clamp(16px, 4vw, 24px)',
           borderTop: '1px solid #e2e8f0'
         }}>
+          <p style={{ 
+            color: '#718096', 
+            fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+            margin: '0 0 8px 0'
+          }}>
+            New farmer?
+          </p>
+          <button
+            onClick={() => navigate('/farmer/signup')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#2563eb',
+              cursor: 'pointer',
+              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+              textDecoration: 'underline',
+              padding: '4px 8px',
+              marginRight: '16px'
+            }}
+          >
+            Create Account
+          </button>
           <button
             onClick={() => navigate('/')}
             style={{
               background: 'none',
               border: 'none',
-              color: '#2563eb',
+              color: '#6b7280',
               cursor: 'pointer',
               fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
               textDecoration: 'underline',

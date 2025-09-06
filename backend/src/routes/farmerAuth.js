@@ -3,6 +3,9 @@ const router = express.Router();
 const farmerAuthController = require('../controllers/farmerAuthController');
 const authMiddleware = require('../middleware/authMiddleware');
 
+// Farmer signup route (no auth required)
+router.post('/signup', farmerAuthController.farmerSignup);
+
 // Farmer login route
 router.post('/login', farmerAuthController.farmerLogin);
 
