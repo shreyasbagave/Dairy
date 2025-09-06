@@ -18,12 +18,22 @@ function FarmerDashboard() {
     setError('');
     
     try {
-      const response = await apiCall('/farmer/milk-logs', {
+      // Try the new farmer authentication endpoint first
+      const response = await apiCall('/farmer/milk-logs-new', {
         method: 'GET'
       });
 
-      const data = await response.json();
-      setLogs(data);
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data);
+      } else {
+        // Fallback to old endpoint if new one fails
+        const fallbackResponse = await apiCall('/farmer/milk-logs', {
+          method: 'GET'
+        });
+        const fallbackData = await fallbackResponse.json();
+        setLogs(fallbackData);
+      }
     } catch (err) {
       setError(err.message || 'Failed to fetch milk logs');
       console.error('Error fetching milk logs:', err);

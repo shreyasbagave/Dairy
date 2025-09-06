@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import LoginPage from './pages/LoginPage';
+import FarmerLoginPage from './pages/FarmerLoginPage';
+import SetInitialPassword from './pages/SetInitialPassword';
 import AdminDashboard from './pages/AdminDashboard';
 import FarmerDashboard from './pages/FarmerDashboard';
 import ViewFarmerRecords from './pages/ViewFarmerRecords';
@@ -33,6 +35,8 @@ function App() {
     }}>
       <Routes>
         <Route path="/" element={<LoginPage />} />
+        <Route path="/farmer-login" element={<FarmerLoginPage />} />
+        <Route path="/farmer/set-password" element={<SetInitialPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />}>

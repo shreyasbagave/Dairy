@@ -12,4 +12,7 @@ router.get('/milk-logs', milkLogController.getFarmerMilkLogs);
 // Filter farmer's milk logs
 router.get('/filter-milk-logs', milkLogController.filterFarmerMilkLogs);
 
+// New route for farmer authentication system
+router.get('/milk-logs-new', milkLogController.getFarmerMilkLogsNew);
+
 module.exports = router; 

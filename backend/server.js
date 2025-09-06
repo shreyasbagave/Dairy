@@ -40,6 +40,9 @@ app.get('/', (req, res) => {
 const authRoutes = require('./src/routes/auth');
 app.use('/', authRoutes);
 
+const farmerAuthRoutes = require('./src/routes/farmerAuth');
+app.use('/farmer-auth', farmerAuthRoutes);
+
 const adminRoutes = require('./src/routes/admin');
 app.use('/admin', adminRoutes);
 

@@ -48,7 +48,8 @@ exports.addFarmer = async (req, res) => {
       name, 
       phone, 
       address, 
-      bank_details 
+      bank_details
+      // No password_hash set - farmer will set it on first login
     });
     
     console.log('Saving farmer:', farmer);

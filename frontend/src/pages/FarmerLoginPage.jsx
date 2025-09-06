@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ForgotPassword from '../components/ForgotPassword';
 import { apiCall, setAuthToken } from '../utils/api';
 
-function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true);
+function FarmerLoginPage() {
   const [form, setForm] = useState({
-    username: '',
-    password: '',
-    role: 'admin'
+    farmer_id: '',
+    password: ''
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -21,8 +18,7 @@ function LoginPage() {
     setMessage('');
 
     try {
-      const endpoint = isLogin ? '/login' : (form.role === 'admin' ? '/signup-admin' : '/signup-farmer');
-      const res = await apiCall(endpoint, {
+      const res = await apiCall('/farmer-auth/login', {
         method: 'POST',
         body: JSON.stringify(form)
       });
@@ -30,17 +26,31 @@ function LoginPage() {
       if (res.ok) {
         const data = await res.json();
         setAuthToken(data.token);
-        if (form.role === 'admin') {
-          navigate('/admin/dashboard');
+        
+        // Check if this is first-time login
+        if (data.is_first_login) {
+          // Store farmer info temporarily for password setup
+          localStorage.setItem('farmerInfo', JSON.stringify({
+            farmer_id: data.farmer_id,
+            farmer_name: data.farmer_name,
+            admin_id: data.admin_id
+          }));
+          navigate('/farmer/set-password');
         } else {
+          // Regular login - go to dashboard
+          localStorage.setItem('farmerInfo', JSON.stringify({
+            farmer_id: data.farmer_id,
+            farmer_name: data.farmer_name,
+            admin_id: data.admin_id
+          }));
           navigate('/farmer/dashboard');
         }
       } else {
         const errorData = await res.json();
-        setMessage(errorData.message || 'Failed to authenticate');
+        setMessage(errorData.message || 'Login failed');
       }
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('Farmer login error:', err);
       setMessage(err.message || 'Network error. Please try again.');
     }
     setLoading(false);
@@ -49,10 +59,6 @@ function LoginPage() {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
-
-  if (showForgotPassword) {
-    return <ForgotPassword onClose={() => setShowForgotPassword(false)} />;
-  }
 
   return (
     <div style={{
@@ -80,14 +86,14 @@ function LoginPage() {
             fontSize: 'clamp(1.5rem, 4vw, 2rem)',
             fontWeight: '600'
           }}>
-            🥛 Dairy Management
+            🐄 Farmer Login
           </h1>
           <p style={{ 
             color: '#718096', 
             fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
             margin: 0
           }}>
-            {isLogin ? 'Welcome back!' : 'Create your account'}
+            Access your milk records
           </p>
         </div>
 
@@ -105,12 +111,12 @@ function LoginPage() {
               color: '#2d3748',
               fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
             }}>
-              {isLogin ? 'Username/Email' : 'Username'}
+              Farmer ID
             </label>
             <input
               type="text"
-              name="username"
-              value={form.username}
+              name="farmer_id"
+              value={form.farmer_id}
               onChange={handleChange}
               required
               style={{
@@ -123,7 +129,7 @@ function LoginPage() {
                 boxSizing: 'border-box',
                 minHeight: '44px'
               }}
-              placeholder={isLogin ? "Enter username or email" : "Choose a username"}
+              placeholder="Enter your Farmer ID"
             />
           </div>
 
@@ -157,43 +163,13 @@ function LoginPage() {
             />
           </div>
 
-          <div>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '8px', 
-              fontWeight: '500',
-              color: '#2d3748',
-              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
-            }}>
-              Role
-            </label>
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: 'clamp(10px, 2.5vw, 12px) clamp(12px, 3vw, 16px)',
-                border: '2px solid #e2e8f0',
-                borderRadius: '8px',
-                fontSize: 'clamp(14px, 3vw, 16px)',
-                backgroundColor: '#fff',
-                cursor: 'pointer',
-                minHeight: '44px'
-              }}
-            >
-              <option value="admin">Admin</option>
-              <option value="farmer">Farmer</option>
-            </select>
-          </div>
-
           <button
             type="submit"
             disabled={loading}
             style={{
               width: '100%',
               padding: 'clamp(12px, 3vw, 14px) clamp(16px, 4vw, 20px)',
-              background: loading ? '#9ca3af' : '#2563eb',
+              background: loading ? '#9ca3af' : '#059669',
               color: '#fff',
               border: 'none',
               borderRadius: '8px',
@@ -205,28 +181,9 @@ function LoginPage() {
               minHeight: '48px'
             }}
           >
-            {loading ? 'Processing...' : (isLogin ? 'Login' : 'Sign Up')}
+            {loading ? 'Logging in...' : 'Login as Farmer'}
           </button>
         </form>
-
-        {isLogin && (
-          <div style={{ textAlign: 'center', marginTop: 'clamp(12px, 3vw, 16px)' }}>
-            <button
-              onClick={() => setShowForgotPassword(true)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#2563eb',
-                cursor: 'pointer',
-                fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                textDecoration: 'underline',
-                padding: '4px 8px'
-              }}
-            >
-              Forgot Password?
-            </button>
-          </div>
-        )}
 
         {message && (
           <div style={{
@@ -250,11 +207,7 @@ function LoginPage() {
           borderTop: '1px solid #e2e8f0'
         }}>
           <button
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setForm({ username: '', password: '', role: 'admin' });
-              setMessage('');
-            }}
+            onClick={() => navigate('/')}
             style={{
               background: 'none',
               border: 'none',
@@ -265,29 +218,7 @@ function LoginPage() {
               padding: '4px 8px'
             }}
           >
-            {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Login'}
-          </button>
-        </div>
-
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: 'clamp(12px, 3vw, 16px)',
-          paddingTop: 'clamp(12px, 3vw, 16px)',
-          borderTop: '1px solid #e2e8f0'
-        }}>
-          <button
-            onClick={() => navigate('/farmer-login')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#059669',
-              cursor: 'pointer',
-              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-              textDecoration: 'underline',
-              padding: '4px 8px'
-            }}
-          >
-            🐄 Login as Farmer
+            Back to Admin Login
           </button>
         </div>
       </div>
@@ -295,4 +226,4 @@ function LoginPage() {
   );
 }
 
-export default LoginPage; 
+export default FarmerLoginPage;

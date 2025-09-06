@@ -197,4 +197,29 @@ exports.filterMilkLogs = async (req, res) => {
     console.error('Error in filterMilkLogs:', err);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
+// New function to get milk logs for farmers using the new farmer authentication system
+exports.getFarmerMilkLogsNew = async (req, res) => {
+  try {
+    console.log('getFarmerMilkLogsNew called');
+    console.log('User from token:', req.user);
+    
+    const farmer_id = req.user.farmer_id; // Get farmer_id from authenticated farmer
+    console.log('Farmer ID from token:', farmer_id);
+    
+    if (!farmer_id) {
+      console.log('No farmer_id found in user token');
+      return res.status(400).json({ message: 'Farmer ID not found in user profile' });
+    }
+
+    console.log('Searching for milk logs with farmer_id:', farmer_id);
+    const logs = await MilkLog.find({ farmer_id }).sort({ date: -1, session: 1 }); // Sort by date descending, then session
+    console.log('Found logs:', logs.length);
+    
+    res.json(logs);
+  } catch (err) {
+    console.error('Error fetching farmer milk logs:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 }; 
