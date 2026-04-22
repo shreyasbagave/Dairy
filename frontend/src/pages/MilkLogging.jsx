@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { apiCall } from '../utils/api';
+import { getFarmerNameFromList, normalizeFarmerId } from '../utils/farmerDisplay';
 
 const sessionOptions = ['Morning', 'Evening'];
 
@@ -39,7 +40,8 @@ function MilkLogging() {
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState('');
   const [farmers, setFarmers] = useState([]);
-  const [logsCache, setLogsCache] = useState({}); // Simple cache for logs
+  /** Monotonic id so an older in-flight request cannot overwrite newer date/session results. */
+  const fetchLogsSeq = useRef(0);
 
   const handleFormChange = e => {
     const { name, value } = e.target;
@@ -59,56 +61,56 @@ function MilkLogging() {
   const handleSessionChange = e => setSession(e.target.value);
   const handleSectionChange = e => setSelectedSection(e.target.value);
 
-  // Fetch logs for the selected date
-  const fetchLogsForDate = async (dateToFetch) => {
-    if (!dateToFetch) return;
-    
-    // Check cache first
-    if (logsCache[dateToFetch]) {
-      setLogs(logsCache[dateToFetch]);
-      return;
-    }
-    
+  const fetchLogsForDate = useCallback(async (dateToFetch, sessionForFetch) => {
+    if (!dateToFetch || !sessionForFetch) return;
+
+    const seq = ++fetchLogsSeq.current;
     setLogsLoading(true);
     setLogsError('');
-    
+
     try {
-      // Send both date and session parameters for better filtering
-      const params = new URLSearchParams({ 
+      const params = new URLSearchParams({
         date: dateToFetch,
-        session: session 
+        session: sessionForFetch
       });
       const response = await apiCall(`/admin/filter-milk-logs?${params.toString()}`, {
         method: 'GET'
       });
 
+      if (seq !== fetchLogsSeq.current) return;
+
       if (response.ok) {
         const data = await response.json();
-        setLogs(data);
-        // Cache the result
-        setLogsCache(prev => ({ ...prev, [dateToFetch]: data }));
+        if (seq !== fetchLogsSeq.current) return;
+        setLogs(Array.isArray(data) ? data : []);
       } else {
         setLogsError('Failed to fetch logs');
+        setLogs([]);
       }
     } catch (error) {
-      setLogsError(error.message || 'Error fetching logs');
+      if (seq === fetchLogsSeq.current) {
+        setLogsError(error.message || 'Error fetching logs');
+        setLogs([]);
+      }
+    } finally {
+      if (seq === fetchLogsSeq.current) {
+        setLogsLoading(false);
+      }
     }
-    
-    setLogsLoading(false);
-  };
+  }, []);
 
-  // Fetch logs when date or session changes
+  // Fetch logs when date or session changes (no client cache — date-only cache hid logs when session changed)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (date) {
-        fetchLogsForDate(date);
+        fetchLogsForDate(date, session);
       } else {
         setLogs([]);
       }
-    }, 200); // Reduced delay for better responsiveness
+    }, 200);
 
     return () => clearTimeout(timeoutId);
-  }, [date, session]); // Include session dependency
+  }, [date, session, fetchLogsForDate]);
 
   // Fetch farmers for name lookup
   useEffect(() => {
@@ -130,11 +132,7 @@ function MilkLogging() {
     fetchFarmers();
   }, []);
 
-  // Function to get farmer name by farmer_id
-  const getFarmerName = (farmerId) => {
-    const farmer = farmers.find(f => f.farmer_id === farmerId);
-    return farmer ? farmer.name : '';
-  };
+  const getFarmerName = (farmerId) => getFarmerNameFromList(farmers, farmerId);
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -162,14 +160,7 @@ function MilkLogging() {
         setMessage('Milk log added successfully!');
         setForm({ farmerId: '', quantity: '', fat: '', rate: '' });
         setTotalCost(0);
-        // Clear cache for this date to force refresh
-        setLogsCache(prev => {
-          const newCache = { ...prev };
-          delete newCache[date];
-          return newCache;
-        });
-        // Refetch logs for the selected date
-        fetchLogsForDate(date);
+        await fetchLogsForDate(date, session);
       } else {
         const errorData = await response.json();
         setMessage(errorData.message || 'Failed to add milk log.');
@@ -182,14 +173,16 @@ function MilkLogging() {
     setLoading(false);
   };
 
-  // Filter logs by session (for display purposes)
-  const filteredLogs = logs.filter(log => log.session === session);
+  // Prefer API filter; normalize session in case stored casing differs
+  const filteredLogs = logs.filter(
+    (log) => String(log.session || '').toLowerCase() === String(session || '').toLowerCase()
+  );
 
   // Rename for entry total cost
   const entryTotalCost = totalCost;
 
   // Summary calculations
-  const uniqueFarmers = new Set(filteredLogs.map(log => log.farmer_id)).size;
+  const uniqueFarmers = new Set(filteredLogs.map((log) => normalizeFarmerId(log.farmer_id))).size;
   const totalQuantity = filteredLogs.reduce((sum, log) => sum + (log.quantity_liters || 0), 0);
   const avgFat = filteredLogs.length > 0 ? (filteredLogs.reduce((sum, log) => sum + (log.fat_percent || 0), 0) / filteredLogs.length) : 0;
   const summaryTotalCost = filteredLogs.reduce((sum, log) => sum + (log.total_cost || 0), 0);
@@ -210,15 +203,7 @@ function MilkLogging() {
       if (response.ok) {
         const result = await response.json();
         alert(`✅ Milk log deleted successfully!\n\nDeleted:\n• Farmer ID: ${result.deletedLog.farmer_id}\n• Date: ${new Date(result.deletedLog.date).toLocaleDateString()}\n• Session: ${result.deletedLog.session}\n• Quantity: ${result.deletedLog.quantity_liters}L`);
-        
-        // Clear cache for this date to force refresh
-        setLogsCache(prev => {
-          const newCache = { ...prev };
-          delete newCache[date];
-          return newCache;
-        });
-        // Refetch logs for the selected date
-        fetchLogsForDate(date);
+        await fetchLogsForDate(date, session);
       } else {
         const errorData = await response.json();
         alert(`❌ Failed to delete milk log: ${errorData.message || 'Unknown error'}`);
@@ -238,7 +223,7 @@ function MilkLogging() {
     const headers = ['Farmer ID', 'Farmer Name', 'Session', 'Quantity (L)', 'Fat %', 'Rate', 'Total'];
     const mainData = filteredLogs.map(log => [
       log.farmer_id,
-      getFarmerName(log.farmer_id),
+      getFarmerName(log.farmer_id) || (normalizeFarmerId(log.farmer_id) ? `ID ${normalizeFarmerId(log.farmer_id)}` : ''),
       log.session,
       formatToTwoDecimals(log.quantity_liters),
       formatToTwoDecimals(log.fat_percent),
@@ -534,12 +519,45 @@ function MilkLogging() {
             {logsError}
           </div>
         ) : filteredLogs.length === 0 ? (
-          <div style={{ 
-            padding: 'clamp(12px, 3vw, 16px)', 
+          <div style={{
+            padding: 'clamp(20px, 5vw, 28px)',
             textAlign: 'center',
-            fontSize: 'clamp(14px, 3vw, 16px)'
+            background: '#fff',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0'
           }}>
-            No logs for this date and session.
+            <p style={{
+              margin: '0 0 8px 0',
+              fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
+              fontWeight: '600',
+              color: '#334155'
+            }}>
+              No logs for {date} — {session}
+            </p>
+            <p style={{
+              margin: '0 0 16px 0',
+              fontSize: 'clamp(0.875rem, 2.2vw, 1rem)',
+              color: '#64748b',
+              lineHeight: 1.5
+            }}>
+              Entries are stored per date and session. If you expect data here, try the other session (Morning / Evening) or pick the date when collection was recorded.
+            </p>
+            <button
+              type="button"
+              onClick={() => fetchLogsForDate(date, session)}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '8px',
+                background: '#2563eb',
+                color: '#fff',
+                border: 'none',
+                fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Refresh list
+            </button>
           </div>
         ) : (
                   <div style={{ overflowX: 'auto' }} className="table-container">
@@ -638,7 +656,7 @@ function MilkLogging() {
                       padding: 'clamp(6px, 1.5vw, 12px)', 
                       fontSize: 'clamp(11px, 2vw, 12px)'
                     }}>
-                      {getFarmerName(log.farmer_id)}
+                      {getFarmerName(log.farmer_id) || (normalizeFarmerId(log.farmer_id) ? `ID ${normalizeFarmerId(log.farmer_id)}` : '—')}
                     </td>
                     <td style={{ 
                       padding: 'clamp(6px, 1.5vw, 12px)', 

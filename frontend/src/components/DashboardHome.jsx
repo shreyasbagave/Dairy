@@ -102,6 +102,19 @@ function DashboardHome() {
     });
   };
 
+  const statCardButtonStyle = {
+    background: '#fff',
+    borderRadius: '12px',
+    padding: 'clamp(20px, 5vw, 24px)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    textAlign: 'center',
+    border: '1px solid #e2e8f0',
+    cursor: 'pointer',
+    width: '100%',
+    fontFamily: 'inherit',
+    transition: 'box-shadow 0.2s ease'
+  };
+
   const handleQuickAction = (action) => {
     if (userInfo?.role === 'admin') {
       switch (action) {
@@ -184,21 +197,19 @@ function DashboardHome() {
         )}
       </div>
 
-      {/* Quick Stats Grid */}
+      {/* Quick Stats Grid — each card opens the related admin screen */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
         gap: 'clamp(16px, 4vw, 24px)',
         marginBottom: 'clamp(20px, 5vw, 32px)'
       }}>
-        <div style={{
-          background: '#fff',
-          borderRadius: '12px',
-          padding: 'clamp(20px, 5vw, 24px)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          textAlign: 'center',
-          border: '1px solid #e2e8f0'
-        }}>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/dashboard/farmers')}
+          title="Open farmers"
+          style={statCardButtonStyle}
+        >
           <div style={{
             fontSize: 'clamp(2rem, 6vw, 3rem)',
             marginBottom: 'clamp(8px, 2vw, 12px)'
@@ -208,7 +219,9 @@ function DashboardHome() {
           <h3 style={{
             fontSize: 'clamp(1.1rem, 3vw, 1.3rem)',
             marginBottom: 'clamp(4px, 1vw, 8px)',
-            color: '#2d3748'
+            color: '#2d3748',
+            fontWeight: '600',
+            margin: '0 0 clamp(4px, 1vw, 8px) 0'
           }}>
             Total Farmers
           </h3>
@@ -220,16 +233,14 @@ function DashboardHome() {
           }}>
             {loading ? '...' : stats.totalFarmers}
           </p>
-        </div>
+        </button>
 
-        <div style={{
-          background: '#fff',
-          borderRadius: '12px',
-          padding: 'clamp(20px, 5vw, 24px)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          textAlign: 'center',
-          border: '1px solid #e2e8f0'
-        }}>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/dashboard/milk-logging')}
+          title="Open milk logging"
+          style={statCardButtonStyle}
+        >
           <div style={{
             fontSize: 'clamp(2rem, 6vw, 3rem)',
             marginBottom: 'clamp(8px, 2vw, 12px)'
@@ -239,7 +250,9 @@ function DashboardHome() {
           <h3 style={{
             fontSize: 'clamp(1.1rem, 3vw, 1.3rem)',
             marginBottom: 'clamp(4px, 1vw, 8px)',
-            color: '#2d3748'
+            color: '#2d3748',
+            fontWeight: '600',
+            margin: '0 0 clamp(4px, 1vw, 8px) 0'
           }}>
             Today's Collection
           </h3>
@@ -251,16 +264,14 @@ function DashboardHome() {
           }}>
             {loading ? '...' : stats.todayLogs} entries
           </p>
-        </div>
+        </button>
 
-        <div style={{
-          background: '#fff',
-          borderRadius: '12px',
-          padding: 'clamp(20px, 5vw, 24px)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          textAlign: 'center',
-          border: '1px solid #e2e8f0'
-        }}>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/dashboard/billing')}
+          title="Open billing"
+          style={statCardButtonStyle}
+        >
           <div style={{
             fontSize: 'clamp(2rem, 6vw, 3rem)',
             marginBottom: 'clamp(8px, 2vw, 12px)'
@@ -270,7 +281,9 @@ function DashboardHome() {
           <h3 style={{
             fontSize: 'clamp(1.1rem, 3vw, 1.3rem)',
             marginBottom: 'clamp(4px, 1vw, 8px)',
-            color: '#2d3748'
+            color: '#2d3748',
+            fontWeight: '600',
+            margin: '0 0 clamp(4px, 1vw, 8px) 0'
           }}>
             Monthly Revenue
           </h3>
@@ -282,16 +295,14 @@ function DashboardHome() {
           }}>
             {loading ? '...' : `₹${stats.monthlyRevenue.toFixed(2)}`}
           </p>
-        </div>
+        </button>
 
-        <div style={{
-          background: '#fff',
-          borderRadius: '12px',
-          padding: 'clamp(20px, 5vw, 24px)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          textAlign: 'center',
-          border: '1px solid #e2e8f0'
-        }}>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/dashboard/milk-logs')}
+          title="Open milk logs"
+          style={statCardButtonStyle}
+        >
           <div style={{
             fontSize: 'clamp(2rem, 6vw, 3rem)',
             marginBottom: 'clamp(8px, 2vw, 12px)'
@@ -301,7 +312,9 @@ function DashboardHome() {
           <h3 style={{
             fontSize: 'clamp(1.1rem, 3vw, 1.3rem)',
             marginBottom: 'clamp(4px, 1vw, 8px)',
-            color: '#2d3748'
+            color: '#2d3748',
+            fontWeight: '600',
+            margin: '0 0 clamp(4px, 1vw, 8px) 0'
           }}>
             Total Logs
           </h3>
@@ -313,7 +326,7 @@ function DashboardHome() {
           }}>
             {loading ? '...' : stats.totalMilkLogs}
           </p>
-        </div>
+        </button>
       </div>
 
       {/* Quick Actions */}

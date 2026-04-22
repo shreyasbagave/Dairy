@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiCall } from '../utils/api';
+import { findFarmerInList } from '../utils/farmerDisplay';
 
 function FeedManagement() {
   const [farmers, setFarmers] = useState([]);
@@ -181,7 +182,7 @@ function FeedManagement() {
   };
 
   const getFarmerName = (farmerId) => {
-    const f = farmers.find(x => x.farmer_id === farmerId);
+    const f = findFarmerInList(farmers, farmerId);
     return f ? `${f.farmer_id} - ${f.name}` : farmerId;
   };
 

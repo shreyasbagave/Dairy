@@ -3,11 +3,6 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-    proxy: {
-      '/admin': 'https://dairy-1-baro.onrender.com',
-      '/auth': 'https://dairy-1-baro.onrender.com',
-      '/farmer': 'https://dairy-1-baro.onrender.com',
-    },
-  },
+  // No dev proxy for `/admin` or `/farmer`: those prefixes match React Router (e.g. `/admin/dashboard/...`).
+  // Proxying them breaks refresh (request hits Express without Authorization). API uses absolute base URL in `src/utils/api.js`.
 }); 

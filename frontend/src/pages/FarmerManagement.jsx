@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiCall } from '../utils/api';
+import { findFarmerInList, normalizeFarmerId } from '../utils/farmerDisplay';
 
 function FarmerManagement() {
   const [farmers, setFarmers] = useState([]);
@@ -83,7 +84,8 @@ function FarmerManagement() {
   };
 
   const handleEdit = id => {
-    const farmer = farmers.find(f => f.farmer_id === id);
+    const farmer = findFarmerInList(farmers, id);
+    if (!farmer) return;
     setForm({ 
       id: farmer.farmer_id, 
       name: farmer.name, 
@@ -120,7 +122,7 @@ function FarmerManagement() {
 
       if (response.ok) {
         const updatedFarmer = await response.json();
-        setFarmers(farmers.map(f => f.farmer_id === form.id ? updatedFarmer : f));
+        setFarmers(farmers.map(f => (normalizeFarmerId(f.farmer_id) === normalizeFarmerId(form.id) ? updatedFarmer : f)));
         setForm({ id: '', name: '', phone: '', address: '', accountNo: '', ifsc: '' });
         setEditingId(null);
         setMessage('Farmer updated successfully!');
@@ -136,7 +138,7 @@ function FarmerManagement() {
   };
 
   const handleDelete = async id => {
-    const farmer = farmers.find(f => f.farmer_id === id);
+    const farmer = findFarmerInList(farmers, id);
     const confirmMessage = `Are you sure you want to delete farmer "${farmer?.name}" (ID: ${id})?\n\nThis will permanently delete:\n• The farmer profile\n• All milk logs for this farmer\n• Any user accounts linked to this farmer\n\nThis action cannot be undone!`;
     
     if (!confirm(confirmMessage)) return;
@@ -148,7 +150,7 @@ function FarmerManagement() {
 
       if (response.ok) {
         const result = await response.json();
-        setFarmers(farmers.filter(f => f.farmer_id !== id));
+        setFarmers(farmers.filter(f => normalizeFarmerId(f.farmer_id) !== normalizeFarmerId(id)));
         alert(`✅ Farmer deleted successfully!\n\nDeleted:\n• Farmer: ${result.deletedFarmer.name}\n• Milk logs: ${result.deletedMilkLogs}\n• User accounts: ${result.deletedUserAccounts}`);
       } else {
         const errorData = await response.json();

@@ -60,7 +60,14 @@ function AdminDashboard() {
     navigate('/');
   };
 
-  const isActive = (path) => location.pathname.includes(path);
+  const isActive = (path) => {
+    const p = location.pathname.replace(/\/$/, '') || '/';
+    const normalized = path.replace(/\/$/, '') || '/';
+    if (normalized === '/admin/dashboard') {
+      return p === '/admin/dashboard';
+    }
+    return p === normalized || p.startsWith(`${normalized}/`);
+  };
 
   const menuItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: '🏠' },
@@ -70,7 +77,6 @@ function AdminDashboard() {
     { path: '/admin/dashboard/farmer-records', label: 'Records', icon: '📋' },
     { path: '/admin/dashboard/feed', label: 'Feed', icon: '🌾' },
     { path: '/admin/dashboard/billing', label: 'Billing', icon: '🧾' },
-    
   ];
 
   const handleMenuClick = (path) => {

@@ -1,5 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiCall } from '../utils/api';
+import { getFarmerNameFromList, normalizeFarmerId } from '../utils/farmerDisplay';
+
+/** YYYY-MM-DD from whatever the API stores (ISO string, Date, ms, Mongo $date). */
+function toDateKey(value) {
+  if (value == null || value === '') return '';
+  if (typeof value === 'object' && value.$date != null) {
+    return toDateKey(value.$date);
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return new Date(value).toISOString().slice(0, 10);
+  }
+  if (typeof value === 'string') {
+    const s = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const t = Date.parse(s);
+    if (!Number.isNaN(t)) return new Date(t).toISOString().slice(0, 10);
+  }
+  try {
+    const t = new Date(value).getTime();
+    if (Number.isNaN(t)) return '';
+    return new Date(t).toISOString().slice(0, 10);
+  } catch {
+    return '';
+  }
+}
+
+function monthFromDateKey(dateKey) {
+  if (!dateKey || dateKey.length < 7) return '';
+  return dateKey.slice(0, 7);
+}
+
+/** Section = calendar day-of-month on the stored milk date (from YYYY-MM-DD, no timezone shift). */
+function calendarSectionFromDateKey(dateKey) {
+  if (!dateKey || dateKey.length < 10) return '';
+  const day = parseInt(dateKey.slice(8, 10), 10);
+  if (Number.isNaN(day) || day < 1) return '';
+  if (day <= 10) return '1-10';
+  if (day <= 20) return '11-20';
+  return '21-End';
+}
+
+function rawLogMatchesFilters(log, filters, farmers) {
+  const dateKey = toDateKey(log.date);
+  const logMonth = monthFromDateKey(dateKey);
+  if (filters.month && logMonth !== filters.month) return false;
+
+  const sess = String(log.session || '').trim().toLowerCase();
+  if (filters.session !== 'All' && sess !== String(filters.session).trim().toLowerCase()) return false;
+
+  const sec = calendarSectionFromDateKey(dateKey);
+  if (filters.section !== 'All' && sec !== filters.section) return false;
+
+  const fid = normalizeFarmerId(log.farmer_id ?? log.farmerId);
+  const qRaw = (filters.farmer || '').trim();
+  if (qRaw) {
+    const name = (getFarmerNameFromList(farmers, fid) || '').trim();
+    if (/^\d+$/.test(qRaw)) {
+      const qn = normalizeFarmerId(qRaw);
+      if (fid !== qn) return false;
+    } else if (!name.toLowerCase().includes(qRaw.toLowerCase())) {
+      return false;
+    }
+  }
+  return true;
+}
 
 const sectionOptions = ['All', '1-10', '11-20', '21-End'];
 const sessionOptions = ['All', 'Morning', 'Evening'];
@@ -9,9 +74,9 @@ function MilkLogView() {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
   
   const [filters, setFilters] = useState({
-    month: currentMonth, // Set current month as default
-    session: 'Morning', // Default session to Morning
-    section: '1-10', // Default section to 1-10
+    month: currentMonth,
+    session: 'All',
+    section: 'All',
     farmer: '',
   });
   const [logs, setLogs] = useState([]);
@@ -60,74 +125,56 @@ function MilkLogView() {
     fetchFarmers();
   }, []);
 
-  // Function to get farmer name by farmer_id
-  const getFarmerName = (farmerId) => {
-    const farmer = farmers.find(f => f.farmer_id === farmerId);
-    return farmer ? farmer.name : '';
-  };
-
   const handleChange = e => setFilters({ ...filters, [e.target.name]: e.target.value });
 
-  // Group logs by farmer_id, section, and session
-  const groupedLogs = logs.reduce((groups, log) => {
-    const logDate = log.date ? log.date.slice(0, 10) : '';
-    const farmerId = log.farmer_id || log.farmerId || '';
-    const section = (() => {
-      if (!log.date) return '';
-      const day = new Date(log.date).getDate();
-      if (day >= 1 && day <= 10) return '1-10';
-      if (day >= 11 && day <= 20) return '11-20';
-      return '21-End';
-    })();
-    
-    const key = `${farmerId}-${section}-${log.session}`;
-    
-    if (!groups[key]) {
-      groups[key] = {
-        farmer_id: farmerId,
-        farmer_name: getFarmerName(farmerId),
-        section: section,
-        session: log.session,
-        date: logDate,
-        quantity_liters: 0,
-        fat_percent: 0,
-        total_cost: 0,
-        count: 0
-      };
-    }
-    
-    groups[key].quantity_liters += log.quantity_liters || log.quantity || 0;
-    groups[key].fat_percent += log.fat_percent || log.fat || 0;
-    groups[key].total_cost += log.total_cost || log.total || 0;
-    groups[key].count += 1;
-    
-    return groups;
-  }, {});
+  const { sortedFiltered, logsAfterRawFilter } = useMemo(() => {
+    const logsInFilter = logs.filter((log) => rawLogMatchesFilters(log, filters, farmers));
 
-  // Calculate average fat for each group and format quantities to 2 decimal places
-  Object.values(groupedLogs).forEach(group => {
-    group.fat_percent = group.count > 0 ? (group.fat_percent / group.count).toFixed(2) : 0;
-    group.quantity_liters = parseFloat(group.quantity_liters).toFixed(2);
-    group.total_cost = parseFloat(group.total_cost).toFixed(2);
-  });
+    const groupedLogs = logsInFilter.reduce((groups, log) => {
+      const logDate = toDateKey(log.date);
+      const farmerId = log.farmer_id ?? log.farmerId ?? '';
+      const section = calendarSectionFromDateKey(logDate);
+      const sessionKey = String(log.session || '').trim();
 
-  const filtered = Object.values(groupedLogs).filter(log => {
-    const farmerId = log.farmer_id || log.farmerId || '';
-    const name = log.farmer_name || '';
-    return (
-      (!filters.month || log.date.startsWith(filters.month)) &&
-      (filters.session === 'All' || log.session === filters.session) &&
-      (filters.section === 'All' || log.section === filters.section) &&
-      (!filters.farmer || farmerId === filters.farmer || name.toLowerCase().includes(filters.farmer.toLowerCase()))
-    );
-  });
+      const key = `${normalizeFarmerId(farmerId)}-${section}-${sessionKey}`;
 
-  // Sort filtered results by farmer_id in ascending order
-  const sortedFiltered = filtered.sort((a, b) => {
-    const farmerIdA = parseInt(a.farmer_id) || 0;
-    const farmerIdB = parseInt(b.farmer_id) || 0;
-    return farmerIdA - farmerIdB;
-  });
+      if (!groups[key]) {
+        groups[key] = {
+          farmer_id: farmerId,
+          farmer_name: getFarmerNameFromList(farmers, farmerId),
+          section,
+          session: log.session,
+          date: logDate,
+          quantity_liters: 0,
+          fat_percent: 0,
+          total_cost: 0,
+          count: 0,
+        };
+      }
+
+      groups[key].quantity_liters += log.quantity_liters || log.quantity || 0;
+      groups[key].fat_percent += log.fat_percent || log.fat || 0;
+      groups[key].total_cost += log.total_cost || log.total || 0;
+      groups[key].count += 1;
+
+      return groups;
+    }, {});
+
+    Object.values(groupedLogs).forEach((group) => {
+      group.fat_percent = group.count > 0 ? (group.fat_percent / group.count).toFixed(2) : 0;
+      group.quantity_liters = parseFloat(group.quantity_liters).toFixed(2);
+      group.total_cost = parseFloat(group.total_cost).toFixed(2);
+    });
+
+    const filtered = Object.values(groupedLogs);
+    const sorted = [...filtered].sort((a, b) => {
+      const farmerIdA = parseInt(a.farmer_id, 10) || 0;
+      const farmerIdB = parseInt(b.farmer_id, 10) || 0;
+      return farmerIdA - farmerIdB;
+    });
+
+    return { sortedFiltered: sorted, logsAfterRawFilter: logsInFilter };
+  }, [logs, filters, farmers]);
 
   const totalMilk = sortedFiltered.reduce((sum, l) => sum + parseFloat(l.quantity_liters || l.quantity || 0), 0);
   const totalCost = sortedFiltered.reduce((sum, l) => sum + parseFloat(l.total_cost || l.total || 0), 0);
@@ -214,7 +261,21 @@ function MilkLogView() {
           </thead>
           <tbody>
             {sortedFiltered.length === 0 ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 16 }}>No records found.</td></tr>
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', padding: 16 }}>
+                  <div>No rows match these filters.</div>
+                  {logs.length > 0 && logsAfterRawFilter.length === 0 && (
+                    <div style={{ marginTop: 10, fontSize: 14, color: '#64748b', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
+                      You have <strong>{logs.length}</strong> milk log(s) in total, but none match the current month / session / section / farmer filters.
+                      <br />
+                      <strong>Section</strong> uses the <strong>calendar day</strong> of each milk date (days 1–10, 11–20, 21–end). Try setting <strong>Section</strong> to <strong>All</strong> if you expect rows on other days of the month.
+                    </div>
+                  )}
+                  {logs.length === 0 && (
+                    <div style={{ marginTop: 8, color: '#64748b' }}>No milk logs loaded from the server.</div>
+                  )}
+                </td>
+              </tr>
             ) : (
               sortedFiltered.map((log, idx) => (
                 <tr key={`${log.farmer_id}-${log.section}-${log.session}`} style={{ background: idx % 2 === 0 ? '#f1f5f9' : '#fff', transition: 'background 0.2s' }}>

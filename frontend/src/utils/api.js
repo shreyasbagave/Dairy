@@ -1,4 +1,11 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+/**
+ * Production: use VITE_API_URL (e.g. Render).
+ * Local dev: use VITE_DEV_API_URL when set so new backend routes work before deploy;
+ * otherwise fall back to VITE_API_URL or localhost:5000.
+ */
+const API_BASE_URL = import.meta.env.DEV
+  ? (import.meta.env.VITE_DEV_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000')
+  : (import.meta.env.VITE_API_URL || 'http://localhost:5000');
 
 export const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -35,11 +42,31 @@ export const apiCall = async (endpoint, options = {}) => {
       body: finalOptions.body ? 'Present' : 'None'
     });
     
-    const response = await fetch(url, finalOptions);
-    
+    let response = await fetch(url, finalOptions);
+
     console.log(`Response status: ${response.status} ${response.statusText}`);
     console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-    
+
+    // Dev: if primary base returns 404 (e.g. deployed API missing new routes), try local backend once.
+    if (
+      !response.ok &&
+      response.status === 404 &&
+      import.meta.env.DEV
+    ) {
+      const localUrl = `http://localhost:5000${endpoint}`;
+      if (localUrl !== url) {
+        try {
+          const localRes = await fetch(localUrl, finalOptions);
+          if (localRes.ok) {
+            console.warn('[api] Using dev fallback after 404:', localUrl);
+            response = localRes;
+          }
+        } catch (e) {
+          console.warn('[api] Dev fallback fetch failed:', e?.message || e);
+        }
+      }
+    }
+
     // Check if response is ok before trying to parse JSON
     if (!response.ok) {
       // Fallback: If 404 and endpoint starts with /api, retry without /api prefix

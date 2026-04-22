@@ -3,7 +3,8 @@ const { v4: uuidv4 } = require('uuid');
 
 exports.addMilkLog = async (req, res) => {
   try {
-    const { farmer_id, date, session, quantity_liters, fat_percent, rate_per_liter } = req.body;
+    const { farmer_id: rawFarmerId, date, session, quantity_liters, fat_percent, rate_per_liter } = req.body;
+    const farmer_id = rawFarmerId != null && rawFarmerId !== '' ? String(rawFarmerId).trim() : rawFarmerId;
     const admin_id = req.user.userId; // Get admin ID from authenticated user
     const total_cost = quantity_liters * rate_per_liter;
     const log = new MilkLog({

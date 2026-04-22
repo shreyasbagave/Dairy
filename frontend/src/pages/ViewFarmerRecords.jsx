@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiCall } from '../utils/api';
+import { getFarmerNameFromList } from '../utils/farmerDisplay';
 
 const sessionOptions = ['All', 'Morning', 'Evening'];
 const sectionOptions = ['All', '1-10', '11-20', '21-End'];
@@ -50,11 +51,7 @@ function ViewFarmerRecords() {
     }
   }, [filters.farmerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Function to get farmer name by farmer_id
-  const getFarmerName = (farmerId) => {
-    const farmer = farmers.find(f => f.farmer_id === farmerId);
-    return farmer ? farmer.name : '';
-  };
+  const getFarmerName = (farmerId) => getFarmerNameFromList(farmers, farmerId);
 
   const fetchFarmerLogs = async () => {
     if (!filters.farmerId) {
